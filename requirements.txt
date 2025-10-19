@@ -1,0 +1,25 @@
+# Insightron - Enhanced Whisper AI Transcription Project Requirements
+# Optimized for performance and reliability
+
+# Core Whisper AI (latest stable)
+openai-whisper>=20231117
+
+# Essential audio processing (optimized versions)
+librosa>=0.10.1,<1.0.0
+soundfile>=0.12.1,<1.0.0
+
+# Progress tracking and utilities
+tqdm>=4.66.0,<5.0.0
+
+# Audio format support
+pydub>=0.25.1,<1.0.0
+
+# Core scientific computing (Windows-compatible versions)
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0,<2.0.0
+
+# Optional: For advanced audio analysis
+matplotlib>=3.5.0,<4.0.0
+
+# Development and testing (optional)
+pytest>=7.0.0,<8.0.0

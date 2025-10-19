@@ -1,0 +1,20 @@
+# Insightron - Minimal Requirements
+# Use this if the main requirements.txt fails
+# Optimized for compatibility and faster installation
+
+# Core Whisper AI (latest)
+openai-whisper
+
+# Essential audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Progress tracking
+tqdm>=4.60.0
+
+# Audio format support
+pydub>=0.25.0
+
+# Core scientific computing (minimal versions)
+numpy>=1.21.0
+scipy>=1.7.0
