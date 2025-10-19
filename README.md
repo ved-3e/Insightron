@@ -42,8 +42,8 @@ Insightron is a modern, high-performance application for transcribing audio file
 
 ```bash
 # Download and setup Insightron
-git clone https://github.com/ved-3e/insightron.git
-cd insightron
+git clone https://github.com/ved-3e/Insightron.git
+cd Insightron
 
 # Automated setup (recommended)
 python setup.py
@@ -328,8 +328,8 @@ We welcome contributions! Here's how to get started:
 ### **Development Setup**
 ```bash
 # Clone your fork
-git clone https://github.com/ved-3e/insightron.git
-cd insightron
+git clone https://github.com/ved-3e/Insightron.git
+cd Insightron
 
 # Install development dependencies
 pip install -r requirements.txt
@@ -351,9 +351,9 @@ black *.py
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/ved-3e/insightron/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ved-3e/insightron/discussions)
-- **Documentation**: [Wiki](https://github.com/ved-3e/insightron/wiki)
+- **Issues**: [GitHub Issues](https://github.com/ved-3e/Insightron/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ved-3e/Insightron/discussions)
+- **Documentation**: [Wiki](https://github.com/ved-3e/Insightron/wiki)
 
 ---
 
