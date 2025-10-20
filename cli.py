@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Optional
 from transcribe import AudioTranscriber
-from config import WHISPER_MODEL
+from config import WHISPER_MODEL, SUPPORTED_LANGUAGES
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,10 +24,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s audio.mp3                    # Basic transcription
+  %(prog)s audio.mp3                    # Basic transcription with auto-detection
   %(prog)s audio.wav -m large -v        # Use large model with verbose output
   %(prog)s audio.m4a -f paragraphs      # Use paragraph formatting
   %(prog)s audio.flac -m tiny -f minimal # Fast transcription with minimal formatting
+  %(prog)s audio.mp3 -l es              # Spanish transcription
+  %(prog)s audio.wav -l fr -m medium    # French transcription with medium model
+  %(prog)s audio.mp3 -l zh              # Chinese transcription
         """
     )
     
@@ -40,6 +43,8 @@ Examples:
     parser.add_argument("-f", "--format", default="auto", 
                        choices=["auto", "paragraphs", "minimal"],
                        help="Text formatting style (default: %(default)s)")
+    parser.add_argument("-l", "--language", default="auto",
+                       help="Language for transcription (e.g., 'en', 'es', 'fr') or 'auto' for detection (default: %(default)s)")
     parser.add_argument("--output", "-o", type=str,
                        help="Custom output path for the transcript file")
     parser.add_argument("--quiet", "-q", action="store_true",
@@ -68,6 +73,14 @@ Examples:
         print(f"Supported formats: {', '.join(supported_extensions)}")
         sys.exit(1)
     
+    # Validate language
+    if args.language not in SUPPORTED_LANGUAGES:
+        logger.warning(f"Language '{args.language}' not supported. Using auto-detection.")
+        if not args.quiet:
+            print(f"⚠️  Warning: Language '{args.language}' not supported. Using auto-detection.")
+            print(f"Supported languages: {', '.join(list(SUPPORTED_LANGUAGES.keys())[:10])}...")
+        args.language = 'auto'
+    
     try:
         start_time = time.time()
         
@@ -76,6 +89,7 @@ Examples:
             print(f"📁 File: {audio_path.name}")
             print(f"🤖 Model: {args.model}")
             print(f"🎨 Format: {args.format}")
+            print(f"🌍 Language: {args.language} ({SUPPORTED_LANGUAGES.get(args.language, 'Unknown')})")
             print("-" * 50)
         
         # Initialize transcriber
@@ -93,7 +107,8 @@ Examples:
         output_path, transcription_data = transcriber.transcribe_file(
             str(audio_path), 
             progress_callback=progress_callback,
-            formatting_style=args.format
+            formatting_style=args.format,
+            language=args.language
         )
         
         # Handle custom output path

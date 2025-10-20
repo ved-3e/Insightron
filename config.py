@@ -41,8 +41,8 @@ FORMATTING_STYLES = {
 
 # Application metadata
 APP_NAME = "Insightron"
-APP_VERSION = "1.0.0"
-APP_DESCRIPTION = "AI-powered audio transcription with Whisper"
+APP_VERSION = "1.1.0"
+APP_DESCRIPTION = "AI-powered audio transcription with Whisper - Multi-language support"
 
 # Maximum file size (in MB)
 MAX_FILE_SIZE_MB = 500  # Increased from 25MB for larger files
@@ -50,7 +50,102 @@ MAX_FILE_SIZE_MB = 500  # Increased from 25MB for larger files
 # Logging configuration
 LOG_LEVEL = "INFO"
 
-print(f"✓ Insightron Config Loaded")
+# Multi-language support configuration
+SUPPORTED_LANGUAGES = {
+    'auto': 'Auto-detect language',
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'ar': 'Arabic',
+    'hi': 'Hindi',
+    'th': 'Thai',
+    'vi': 'Vietnamese',
+    'tr': 'Turkish',
+    'pl': 'Polish',
+    'nl': 'Dutch',
+    'sv': 'Swedish',
+    'no': 'Norwegian',
+    'da': 'Danish',
+    'fi': 'Finnish',
+    'cs': 'Czech',
+    'hu': 'Hungarian',
+    'ro': 'Romanian',
+    'bg': 'Bulgarian',
+    'hr': 'Croatian',
+    'sk': 'Slovak',
+    'sl': 'Slovenian',
+    'et': 'Estonian',
+    'lv': 'Latvian',
+    'lt': 'Lithuanian',
+    'el': 'Greek',
+    'he': 'Hebrew',
+    'fa': 'Persian',
+    'ur': 'Urdu',
+    'bn': 'Bengali',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'ml': 'Malayalam',
+    'kn': 'Kannada',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi',
+    'mr': 'Marathi',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'my': 'Burmese',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'ka': 'Georgian',
+    'am': 'Amharic',
+    'sw': 'Swahili',
+    'zu': 'Zulu',
+    'af': 'Afrikaans',
+    'sq': 'Albanian',
+    'az': 'Azerbaijani',
+    'eu': 'Basque',
+    'be': 'Belarusian',
+    'bs': 'Bosnian',
+    'ca': 'Catalan',
+    'cy': 'Welsh',
+    'eo': 'Esperanto',
+    'gl': 'Galician',
+    'is': 'Icelandic',
+    'ga': 'Irish',
+    'mk': 'Macedonian',
+    'mt': 'Maltese',
+    'mn': 'Mongolian',
+    'ms': 'Malay',
+    'no': 'Norwegian',
+    'oc': 'Occitan',
+    'ps': 'Pashto',
+    'rm': 'Romansh',
+    'sn': 'Shona',
+    'so': 'Somali',
+    'tg': 'Tajik',
+    'tk': 'Turkmen',
+    'uk': 'Ukrainian',
+    'uz': 'Uzbek',
+    'yi': 'Yiddish',
+    'yo': 'Yoruba'
+}
+
+# Language detection configuration
+DEFAULT_LANGUAGE = "auto"  # Auto-detect by default
+ENABLE_LANGUAGE_DETECTION = True
+ENABLE_MANUAL_LANGUAGE_SELECTION = True
+
+# UTF-8 encoding configuration
+ENSURE_UTF8_ENCODING = True
+OUTPUT_ENCODING = "utf-8"
+
+print(f"✓ Insightron Config Loaded v{APP_VERSION}")
 print(f"  - Model: {WHISPER_MODEL}")
 print(f"  - Output: {TRANSCRIPTION_FOLDER}")
 print(f"  - Vault: {OBSIDIAN_VAULT_PATH}")
+print(f"  - Languages: {len(SUPPORTED_LANGUAGES)} supported")

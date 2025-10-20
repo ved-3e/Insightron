@@ -1,8 +1,8 @@
-# 🎤 Insightron v1.0.0 - Enhanced Whisper AI Transcriber
+# 🎤 Insightron v1.1.0 - Enhanced Whisper AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
-Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring an elegant macOS-inspired interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility.
+Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring an elegant macOS-inspired interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility and **comprehensive multi-language support**.
 
 ## ✨ Key Features
 
@@ -26,6 +26,13 @@ Insightron is a modern, high-performance application for transcribing audio file
 - **Quality Optimization**: Model-specific parameters for best results
 - **File Size Validation**: Automatic 500MB limit checking (increased from 25MB)
 - **Enhanced Audio Processing**: Improved librosa and soundfile integration
+
+### 🌍 **Multi-Language Support**
+- **100+ Languages**: Support for all Whisper-supported languages including English, Spanish, French, German, Chinese, Japanese, Arabic, Hindi, and many more
+- **Auto-Detection**: Intelligent language detection for multilingual content
+- **Manual Selection**: Choose specific languages for optimal accuracy
+- **UTF-8 Encoding**: Perfect support for non-Latin scripts and special characters
+- **Language-Aware Processing**: Optimized transcription parameters for each language
 
 ### 📝 **Intelligent Text Processing**
 - **Smart Formatting**: Auto-detects paragraph breaks and sentence structure
@@ -82,11 +89,17 @@ python insightron.py
 
 **⚡ Command Line Mode:**
 ```bash
-# Basic transcription
+# Basic transcription with auto-detection
 python cli.py audio.mp3
 
-# Advanced options
-python cli.py audio.wav -m large -v -f paragraphs
+# Advanced options with language selection
+python cli.py audio.wav -m large -v -f paragraphs -l es
+
+# Multi-language examples
+python cli.py spanish_audio.mp3 -l es -m medium
+python cli.py french_audio.wav -l fr -f auto
+python cli.py chinese_audio.m4a -l zh -m large
+python cli.py arabic_audio.mp3 -l ar -v
 ```
 
 ## 📖 Usage Guide
@@ -95,7 +108,10 @@ python cli.py audio.wav -m large -v -f paragraphs
 
 1. **Launch**: Run `python insightron.py`
 2. **Select Audio**: Click "Choose File" to browse for audio
-3. **Configure**: Choose Whisper model and formatting style
+3. **Configure**: Choose Whisper model, language, and formatting style
+   - **Language**: Select from 100+ supported languages or use "auto" for detection
+   - **Model**: Choose between tiny, base, small, medium, or large for speed vs. accuracy
+   - **Formatting**: Select auto, paragraphs, or minimal text formatting
 4. **Transcribe**: Click "Start Transcription"
 5. **Review**: View results and open output folder
 6. **Troubleshoot**: Run `python troubleshoot.py` if issues occur
@@ -128,6 +144,7 @@ python cli.py audio.mp3 -q
 |--------|-------------|---------|
 | `-m, --model` | Whisper model size (tiny, base, small, medium, large) | medium |
 | `-f, --format` | Text formatting (auto, paragraphs, minimal) | auto |
+| `-l, --language` | Language code (en, es, fr, de, zh, ja, ar, etc.) or 'auto' | auto |
 | `-v, --verbose` | Enable detailed progress output | False |
 | `-o, --output` | Custom output file path | Auto-generated |
 | `-q, --quiet` | Suppress all output except errors | False |
@@ -153,6 +170,55 @@ insightron/
 ├── test_macos_gui.py       # 🧪 GUI interface tests
 └── README.md              # 📖 This documentation
 ```
+
+## 🌍 Multi-Language Support
+
+### **Supported Languages**
+
+Insightron supports **100+ languages** including all major world languages:
+
+#### **Major Languages**
+- **English** (en) - Default, highest accuracy
+- **Spanish** (es) - Español
+- **French** (fr) - Français  
+- **German** (de) - Deutsch
+- **Chinese** (zh) - 中文 (Mandarin)
+- **Japanese** (ja) - 日本語
+- **Korean** (ko) - 한국어
+- **Arabic** (ar) - العربية
+- **Hindi** (hi) - हिन्दी
+- **Russian** (ru) - Русский
+- **Portuguese** (pt) - Português
+- **Italian** (it) - Italiano
+
+#### **Additional Languages**
+- **European**: Dutch, Swedish, Norwegian, Danish, Finnish, Polish, Czech, Hungarian, Romanian, Bulgarian, Croatian, Slovak, Slovenian, Estonian, Latvian, Lithuanian, Greek, Welsh, Irish, Maltese, Albanian, Basque, Catalan, Galician
+- **Asian**: Thai, Vietnamese, Burmese, Khmer, Lao, Mongolian, Tamil, Telugu, Malayalam, Kannada, Gujarati, Punjabi, Marathi, Nepali, Sinhala, Bengali
+- **Middle Eastern/African**: Persian, Urdu, Hebrew, Amharic, Swahili, Zulu, Afrikaans
+- **And many more...**
+
+### **Language Usage Examples**
+
+```bash
+# Auto-detection (recommended for most cases)
+python cli.py audio.mp3 -l auto
+
+# Specific language selection for better accuracy
+python cli.py spanish_meeting.mp3 -l es -m medium
+python cli.py french_podcast.wav -l fr -m large
+python cli.py chinese_lecture.m4a -l zh -v
+python cli.py arabic_news.mp3 -l ar -f paragraphs
+python cli.py hindi_interview.wav -l hi -m medium
+```
+
+### **Language Selection Tips**
+
+- **Auto-detection**: Use `auto` or leave blank for most cases - Whisper is very good at detecting languages
+- **Manual selection**: Specify language for better accuracy, especially with:
+  - Background noise or poor audio quality
+  - Mixed-language content where you want to prioritize one language
+  - Less common languages where auto-detection might be uncertain
+- **UTF-8 Support**: All non-Latin scripts (Chinese, Arabic, Hindi, etc.) are fully supported with proper UTF-8 encoding
 
 ## 🎯 Whisper Model Guide
 
@@ -386,4 +452,23 @@ black *.py
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
 
-**Insightron v1.0.0** - Enhanced Whisper AI Transcription Tool
+**Insightron v1.1.0** - Enhanced Whisper AI Transcription Tool with Multi-Language Support
+
+## 🆕 What's New in v1.1.0
+
+### **Multi-Language Support**
+- ✅ **100+ Languages**: Support for all Whisper-supported languages
+- ✅ **Auto-Detection**: Intelligent language detection for multilingual content  
+- ✅ **Manual Selection**: Choose specific languages for optimal accuracy
+- ✅ **UTF-8 Encoding**: Perfect support for non-Latin scripts and special characters
+- ✅ **Language-Aware Processing**: Optimized transcription parameters for each language
+
+### **Enhanced Interface**
+- ✅ **GUI Language Selector**: Easy language selection in the graphical interface
+- ✅ **CLI Language Support**: Command-line language selection with `-l` flag
+- ✅ **Improved Documentation**: Comprehensive multi-language examples and usage guides
+
+### **Technical Improvements**
+- ✅ **UTF-8 Encoding**: Ensures proper handling of all character sets
+- ✅ **Language Validation**: Automatic fallback to auto-detection for invalid languages
+- ✅ **Enhanced Logging**: Better language detection and processing information

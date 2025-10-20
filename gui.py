@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 import logging
 from typing import Optional
+from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -300,6 +301,37 @@ class InsightronGUI:
                 fg=self.colors['text_dim'],
                 font=('Segoe UI', 8)).pack(anchor=tk.W, pady=(5, 0))
         
+        # Language selection
+        language_col = tk.Frame(settings_grid, bg=self.colors['bg_card'])
+        language_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
+        
+        tk.Label(language_col, text="LANGUAGE",
+                bg=self.colors['bg_card'],
+                fg=self.colors['text_dim'],
+                font=('Segoe UI', 9, 'bold')).pack(anchor=tk.W, pady=(0, 8))
+        
+        self.language_var = tk.StringVar(value=DEFAULT_LANGUAGE)
+        # Create language options list with display names
+        language_options = []
+        for code, name in SUPPORTED_LANGUAGES.items():
+            if code == 'auto':
+                language_options.append(f"{code} - {name}")
+            else:
+                language_options.append(f"{code} - {name}")
+        
+        language_combo = ttk.Combobox(language_col, textvariable=self.language_var,
+                                      values=language_options,
+                                      state="readonly",
+                                      style='Modern.TCombobox',
+                                      font=('Segoe UI', 10))
+        language_combo.pack(fill=tk.X)
+        
+        tk.Label(language_col,
+                text="Auto-detect or specify language",
+                bg=self.colors['bg_card'],
+                fg=self.colors['text_dim'],
+                font=('Segoe UI', 8)).pack(anchor=tk.W, pady=(5, 0))
+        
         # Formatting selection
         format_col = tk.Frame(settings_grid, bg=self.colors['bg_card'])
         format_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -506,11 +538,19 @@ class InsightronGUI:
             def progress_callback(msg):
                 self.update_progress(f"🎙️ {msg}")
             
+            # Extract language code from selection
+            selected_language = self.language_var.get()
+            if ' - ' in selected_language:
+                language_code = selected_language.split(' - ')[0]
+            else:
+                language_code = selected_language
+            
             self.update_progress("🎙️ Transcribing audio...")
             output_path, data = self.transcriber.transcribe_file(
                 self.selected_file,
                 progress_callback=progress_callback,
-                formatting_style=self.formatting_var.get()
+                formatting_style=self.formatting_var.get(),
+                language=language_code
             )
             
             # Success

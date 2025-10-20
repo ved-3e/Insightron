@@ -7,7 +7,7 @@ import librosa
 import logging
 from typing import Dict, Any, Optional, Callable
 from utils import create_markdown
-from config import WHISPER_MODEL, TRANSCRIPTION_FOLDER
+from config import WHISPER_MODEL, TRANSCRIPTION_FOLDER, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, ENSURE_UTF8_ENCODING, OUTPUT_ENCODING
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,17 +19,47 @@ class AudioTranscriber:
     and better progress tracking for the Insightron project.
     """
     
-    def __init__(self, model_size: str = WHISPER_MODEL):
-        """Initialize the transcriber with the specified Whisper model."""
+    def __init__(self, model_size: str = WHISPER_MODEL, language: str = DEFAULT_LANGUAGE):
+        """Initialize the transcriber with the specified Whisper model and language."""
         logger.info(f"Loading Whisper model: {model_size}...")
         try:
             self.model = whisper.load_model(model_size)
             self.model_size = model_size
             self.supported_formats = {'.mp3', '.wav', '.m4a', '.flac', '.mp4', '.ogg', '.aac', '.wma'}
-            logger.info(f"Successfully loaded {model_size} model")
+            self.supported_languages = SUPPORTED_LANGUAGES
+            self.language = language
+            logger.info(f"Successfully loaded {model_size} model with language support: {language}")
         except Exception as e:
             logger.error(f"Failed to load Whisper model: {e}")
             raise RuntimeError(f"Could not load Whisper model '{model_size}': {e}")
+
+    def set_language(self, language: str) -> bool:
+        """
+        Set the transcription language.
+        
+        Args:
+            language: Language code (e.g., 'en', 'es', 'fr') or 'auto' for auto-detection
+            
+        Returns:
+            True if language is valid and set
+        """
+        if language not in self.supported_languages:
+            logger.warning(f"Language '{language}' not in supported languages. Using auto-detection.")
+            self.language = 'auto'
+            return False
+        
+        self.language = language
+        logger.info(f"Language set to: {language} ({self.supported_languages[language]})")
+        return True
+
+    def get_supported_languages(self) -> Dict[str, str]:
+        """
+        Get dictionary of supported languages.
+        
+        Returns:
+            Dictionary mapping language codes to language names
+        """
+        return self.supported_languages.copy()
 
     def validate_audio_file(self, audio_path: str) -> bool:
         """
@@ -112,7 +142,7 @@ class AudioTranscriber:
             }
 
     def transcribe_file(self, audio_path: str, progress_callback: Optional[Callable[[str], None]] = None, 
-                       formatting_style: str = "auto") -> tuple[Path, Dict[str, Any]]:
+                       formatting_style: str = "auto", language: Optional[str] = None) -> tuple[Path, Dict[str, Any]]:
         """
         Transcribe audio file with enhanced error handling and progress tracking.
         
@@ -120,6 +150,7 @@ class AudioTranscriber:
             audio_path: Path to the audio file to transcribe
             progress_callback: Optional callback function for progress updates
             formatting_style: Text formatting style ('auto', 'paragraphs', 'minimal')
+            language: Language code for transcription (e.g., 'en', 'es', 'fr') or None for auto-detection
             
         Returns:
             Tuple of (output_path, transcription_data)
@@ -145,11 +176,27 @@ class AudioTranscriber:
             if progress_callback:
                 progress_callback("Processing audio...")
             
+            # Determine language for transcription
+            transcription_language = None
+            if language:
+                # Use provided language if valid
+                if language in self.supported_languages and language != 'auto':
+                    transcription_language = language
+                    logger.info(f"Using specified language: {language} ({self.supported_languages[language]})")
+                else:
+                    logger.info(f"Invalid or auto language specified: {language}, using auto-detection")
+            elif self.language and self.language != 'auto':
+                # Use instance language if set
+                transcription_language = self.language
+                logger.info(f"Using instance language: {self.language} ({self.supported_languages[self.language]})")
+            else:
+                logger.info("Using auto language detection")
+            
             # Configure transcription parameters for optimal performance
             transcribe_kwargs = {
                 'verbose': False,  # Reduce console output
                 'fp16': False,     # Use fp32 for better compatibility
-                'language': None,  # Auto-detect language
+                'language': transcription_language,  # Language or None for auto-detect
                 'task': 'transcribe'
             }
             
@@ -196,7 +243,12 @@ class AudioTranscriber:
             temp_path = output_path.with_suffix('.tmp')
             
             try:
-                temp_path.write_text(markdown_text, encoding="utf-8")
+                # Ensure UTF-8 encoding for all text output
+                if ENSURE_UTF8_ENCODING:
+                    temp_path.write_text(markdown_text, encoding=OUTPUT_ENCODING)
+                    logger.debug(f"File written with {OUTPUT_ENCODING} encoding")
+                else:
+                    temp_path.write_text(markdown_text, encoding="utf-8")
                 temp_path.replace(output_path)  # Atomic move
             except Exception as e:
                 if temp_path.exists():
