@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Windows-compatible dependency installer for Insightron
-Handles NumPy installation issues on Windows by using pre-compiled wheels
+Insightron v1.0.0 - Enhanced Dependency Installer
+Cross-platform installer with Windows optimization, better error handling,
+and comprehensive dependency management for the Whisper AI transcription tool.
 """
 
 import subprocess
@@ -24,8 +25,8 @@ def run_command(command, description):
 
 def main():
     """Main installation process"""
-    print("🎤 Insightron - Windows Dependency Installer")
-    print("=" * 50)
+    print("🎤 Insightron v1.0.0 - Enhanced Dependency Installer")
+    print("=" * 60)
     
     # Check if we're on Windows
     if os.name != 'nt':
@@ -71,17 +72,29 @@ def main():
         import whisper
         import librosa
         import tkinter
+        import soundfile
+        import pydub
         print("✅ All core dependencies are working!")
+        
+        # Test basic functionality
+        print("\n🧪 Testing basic functionality...")
+        from transcribe import AudioTranscriber
+        print("✅ Transcription module loaded successfully!")
         return True
     except ImportError as e:
         print(f"❌ Verification failed: {e}")
+        print("💡 Try running: python troubleshoot.py")
         return False
 
 if __name__ == "__main__":
     success = main()
     if success:
         print("\n🎉 Installation completed successfully!")
-        print("   You can now run: python main.py")
+        print("   You can now run:")
+        print("   • python insightron.py    # GUI mode (recommended)")
+        print("   • python cli.py audio.mp3  # Command line mode")
+        print("   • python troubleshoot.py  # For diagnostics")
     else:
         print("\n💥 Installation failed. Please check the errors above.")
+        print("   Try running: python troubleshoot.py")
         sys.exit(1)

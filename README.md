@@ -1,8 +1,8 @@
-# 🎤 Insightron - Enhanced Whisper AI Transcriber
+# 🎤 Insightron v1.0.0 - Enhanced Whisper AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
-Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring an elegant macOS-inspired interface and seamless Obsidian integration. Built for speed, reliability, and user experience.
+Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring an elegant macOS-inspired interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility.
 
 ## ✨ Key Features
 
@@ -11,6 +11,8 @@ Insightron is a modern, high-performance application for transcribing audio file
 - **Smart Error Handling**: Comprehensive validation with graceful fallbacks
 - **Atomic File Operations**: Safe file writing prevents data corruption
 - **Memory Efficient**: Optimized memory usage for large audio files
+- **Cross-Platform**: Enhanced Windows, macOS, and Linux compatibility
+- **Enhanced Diagnostics**: Comprehensive troubleshooting and repair tools
 
 ### 🎨 **Modern Interface**
 - **macOS-Inspired Design**: Clean, card-based layout with smooth animations
@@ -22,7 +24,8 @@ Insightron is a modern, high-performance application for transcribing audio file
 - **Universal Format Support**: MP3, WAV, M4A, FLAC, MP4, OGG, AAC, WMA
 - **Smart Format Detection**: Automatic audio format recognition
 - **Quality Optimization**: Model-specific parameters for best results
-- **File Size Validation**: Automatic 25MB limit checking
+- **File Size Validation**: Automatic 500MB limit checking (increased from 25MB)
+- **Enhanced Audio Processing**: Improved librosa and soundfile integration
 
 ### 📝 **Intelligent Text Processing**
 - **Smart Formatting**: Auto-detects paragraph breaks and sentence structure
@@ -41,12 +44,18 @@ Insightron is a modern, high-performance application for transcribing audio file
 ### 1. **One-Click Installation**
 
 ```bash
-# Download and setup Insightron
+# Download and setup Insightron v1.0.0
 git clone https://github.com/ved-3e/Insightron.git
 cd Insightron
 
 # Automated setup (recommended)
 python setup.py
+
+# Windows users - use the enhanced installer
+install_windows.bat
+
+# Cross-platform installer
+python install_dependencies.py
 
 # Or manual installation
 pip install -r requirements.txt
@@ -68,7 +77,7 @@ TRANSCRIPTION_FOLDER = OBSIDIAN_VAULT_PATH / "Insights"
 
 **🎨 GUI Mode (Recommended):**
 ```bash
-python main.py
+python insightron.py
 ```
 
 **⚡ Command Line Mode:**
@@ -84,11 +93,12 @@ python cli.py audio.wav -m large -v -f paragraphs
 
 ### **GUI Interface**
 
-1. **Launch**: Run `python main.py`
+1. **Launch**: Run `python insightron.py`
 2. **Select Audio**: Click "Choose File" to browse for audio
 3. **Configure**: Choose Whisper model and formatting style
 4. **Transcribe**: Click "Start Transcription"
 5. **Review**: View results and open output folder
+6. **Troubleshoot**: Run `python troubleshoot.py` if issues occur
 
 ### **Command Line Interface**
 
@@ -134,10 +144,11 @@ insightron/
 ├── utils.py                # 🔧 Utility functions
 ├── config.py               # ⚙️ Configuration settings
 ├── setup.py                # 🛠️ Automated setup script
-├── troubleshoot.py         # 🔍 Diagnostic and repair tool
-├── install_windows.bat     # 📦 Installs full dependancies
-├── requirements.txt        # 📦 Full dependencies
-├── requirements-minimal.txt # 📦 Minimal dependencies
+├── troubleshoot.py         # 🔍 Enhanced diagnostic and repair tool
+├── install_dependencies.py # 📦 Cross-platform dependency installer
+├── install_windows.bat     # 📦 Windows-optimized installer
+├── requirements.txt        # 📦 Full dependencies (v1.0.0)
+├── requirements-minimal.txt # 📦 Minimal dependencies (v1.0.0)
 ├── test_formatting.py      # 🧪 Text formatting tests
 ├── test_macos_gui.py       # 🧪 GUI interface tests
 └── README.md              # 📖 This documentation
@@ -211,6 +222,14 @@ Your beautifully formatted transcript here with intelligent paragraph breaks...
 
 #### **Installation Problems**
 ```bash
+# Enhanced troubleshooting
+python troubleshoot.py
+
+# Cross-platform installer
+python install_dependencies.py
+
+# Windows-specific installer
+install_windows.bat
 
 # Manual dependency installation
 pip install --upgrade pip
@@ -218,9 +237,9 @@ pip install -r requirements-minimal.txt
 ```
 
 #### **Audio File Issues**
-- **File too large**: Whisper has a 25MB limit - use audio compression
-- **Unsupported format**: Insightron only supports MP3, WAV, or M4A
-- **Corrupted file**: Try a different audio file
+- **File too large**: Whisper has a 500MB limit (increased from 25MB) - use audio compression for larger files
+- **Unsupported format**: Insightron supports MP3, WAV, M4A, FLAC, MP4, OGG, AAC, WMA
+- **Corrupted file**: Try a different audio file or run diagnostics
 
 #### **Performance Issues**
 - **Slow transcription**: Use smaller models (tiny, base, small)
@@ -251,6 +270,9 @@ python test_formatting.py
 
 # Test GUI interface
 python test_macos_gui.py
+
+# Enhanced diagnostics
+python troubleshoot.py
 
 # Test full functionality
 python -m pytest
@@ -335,6 +357,9 @@ cd Insightron
 pip install -r requirements.txt
 pip install pytest black flake8
 
+# Run enhanced diagnostics
+python troubleshoot.py
+
 # Run tests
 python -m pytest
 
@@ -360,3 +385,5 @@ black *.py
 **Happy Transcribing! 🎤✨**
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
+
+**Insightron v1.0.0** - Enhanced Whisper AI Transcription Tool

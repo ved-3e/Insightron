@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Troubleshooting script for Whisper AI Transcriber
-Helps diagnose and fix common installation issues
+Insightron v1.0.0 - Enhanced Troubleshooting Script
+Comprehensive diagnostic and repair tool for Whisper AI Transcriber
+Helps diagnose and fix common installation issues with detailed reporting
 """
 
 import sys
@@ -76,8 +77,8 @@ def fix_common_issues():
 
 def main():
     """Main troubleshooting function"""
-    print("🔍 Whisper AI Transcriber Troubleshooter")
-    print("=" * 50)
+    print("🔍 Insightron v1.0.0 - Enhanced Troubleshooter")
+    print("=" * 60)
     
     check_system_info()
     
@@ -99,7 +100,8 @@ def main():
         "librosa",
         "soundfile",
         "pydub",
-        "whisper"
+        "whisper",
+        "colorama"
     ]
     
     missing_packages = []
@@ -131,6 +133,7 @@ def main():
         ("soundfile", "import soundfile"),
         ("pydub", "import pydub"),
         ("whisper", "import whisper"),
+        ("colorama", "import colorama"),
         ("tkinter", "import tkinter")
     ]
     
@@ -148,10 +151,18 @@ def main():
         print("• If you get Microsoft Visual C++ errors, install Visual Studio Build Tools")
         print("• Try running as Administrator if permission errors occur")
         print("• Consider using conda instead of pip: conda install -c conda-forge whisper")
+        print("• Use the Windows installer: install_windows.bat")
     
     print("• If librosa fails, try: pip install librosa --no-cache-dir")
     print("• If whisper fails, try: pip install openai-whisper --no-cache-dir")
     print("• For audio issues, install ffmpeg: https://ffmpeg.org/download.html")
+    print("• Try minimal installation: pip install -r requirements-minimal.txt")
+    print("• Run enhanced installer: python install_dependencies.py")
+    
+    print("\n🚀 Quick Start:")
+    print("• GUI Mode: python insightron.py")
+    print("• CLI Mode: python cli.py audio.mp3")
+    print("• Setup: python setup.py")
     
     print("\n✨ Troubleshooting complete!")
 
