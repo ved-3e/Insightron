@@ -1,0 +1,158 @@
+[OK] Insightron Config Loaded v1.1.0
+  - Model: medium
+  - Output: D:\2. Areas\IdeaVerse\Areas\Insights
+  - Vault: D:\2. Areas\IdeaVerse\Areas
+  - Languages: 80 supported
+test_add_punctuation (__main__.TestTextFormatter.test_add_punctuation)
+Test punctuation addition. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_clean_text (__main__.TestTextFormatter.test_clean_text)
+Test text cleaning functionality. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+FAIL
+test_empty_text_handling (__main__.TestTextFormatter.test_empty_text_handling)
+Test handling of empty text. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_fix_common_errors (__main__.TestTextFormatter.test_fix_common_errors)
+Test common error fixing. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_text_auto (__main__.TestTextFormatter.test_format_text_auto)
+Test auto formatting. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_with_custom_structure (__main__.TestTextFormatter.test_format_with_custom_structure)
+Test custom structure formatting. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_create_markdown (__main__.TestUtils.test_create_markdown)
+Test markdown creation. ... INFO:utils:Enhanced markdown created for: test
+ok
+test_format_timestamp (__main__.TestUtils.test_format_timestamp)
+Test timestamp formatting function. ... ok
+test_get_audio_metadata (__main__.TestAudioTranscriber.test_get_audio_metadata)
+Test metadata extraction. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+Note: Illegal Audio-MPEG-Header 0x00000000 at offset 11.
+Note: Trying to resync...
+Note: Hit end of (available) data during resync.
+D:\Developer Mode\Insightron\transcribe.py:111: FutureWarning: get_duration() keyword argument 'filename' has been renamed to 'path' in version 0.10.0.
+	This alias will be removed in version 1.0.
+  duration = librosa.get_duration(filename=str(audio))
+D:\Developer Mode\Insightron\transcribe.py:111: FutureWarning: PySoundFile failed. Trying audioread instead.
+	Audioread support is deprecated in librosa 0.10.0 and will be removed in version 1.0.
+  duration = librosa.get_duration(filename=str(audio))
+WARNING:transcribe:Librosa duration extraction failed: 
+WARNING:transcribe:Whisper duration extraction failed: module 'whisper.audio' has no attribute 'get_duration'
+INFO:transcribe:Metadata extracted: tmp06v7trfc.mp3 - Unknown - 0.0MB
+ok
+test_get_audio_metadata_fallback (__main__.TestAudioTranscriber.test_get_audio_metadata_fallback)
+Test metadata extraction with fallback methods. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+ERROR
+test_initialization (__main__.TestAudioTranscriber.test_initialization)
+Test transcriber initialization. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+ok
+test_validate_audio_file_missing (__main__.TestAudioTranscriber.test_validate_audio_file_missing)
+Test validation of missing file. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+ok
+test_validate_audio_file_too_large (__main__.TestAudioTranscriber.test_validate_audio_file_too_large)
+Test validation of oversized file. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+ok
+test_validate_audio_file_unsupported_format (__main__.TestAudioTranscriber.test_validate_audio_file_unsupported_format)
+Test validation of unsupported format. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+ok
+test_format_transcript_auto (__main__.TestFormatTranscript.test_format_transcript_auto)
+Test auto formatting. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_transcript_invalid_style (__main__.TestFormatTranscript.test_format_transcript_invalid_style)
+Test invalid formatting style fallback. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_transcript_minimal (__main__.TestFormatTranscript.test_format_transcript_minimal)
+Test minimal formatting. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_transcript_paragraphs (__main__.TestFormatTranscript.test_format_transcript_paragraphs)
+Test paragraph formatting. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_full_transcription_workflow (__main__.TestIntegration.test_full_transcription_workflow)
+Test the complete transcription workflow. ... INFO:transcribe:Loading Whisper model: tiny...
+INFO:transcribe:Successfully loaded tiny model with language support: auto
+INFO:transcribe:Audio file validation passed: tmpdr5paqcg.mp3 (0.0MB)
+INFO:transcribe:Transcribing: test.mp3 - 0:02 - 1.0MB
+INFO:transcribe:Using auto language detection
+INFO:utils:Enhanced markdown created for: tmpdr5paqcg
+INFO:transcribe:Transcription completed in 0.0s - Saved to: D:\2. Areas\IdeaVerse\Areas\Insights\tmpdr5paqcg.md
+FAIL
+test_markdown_creation_performance (__main__.TestPerformance.test_markdown_creation_performance)
+Test markdown creation performance. ... INFO:utils:Enhanced markdown created for: performance_test
+ok
+test_text_formatter_performance (__main__.TestPerformance.test_text_formatter_performance)
+Test text formatter performance with large text. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+test_format_timestamp_edge_cases (__main__.TestErrorHandling.test_format_timestamp_edge_cases)
+Test format_timestamp with edge cases. ... ok
+test_text_formatter_edge_cases (__main__.TestErrorHandling.test_text_formatter_edge_cases)
+Test text formatter with edge cases. ... INFO:text_formatter:TextFormatter initialized with optimized patterns
+ok
+
+======================================================================
+ERROR: test_get_audio_metadata_fallback (__main__.TestAudioTranscriber.test_get_audio_metadata_fallback)
+Test metadata extraction with fallback methods.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 1423, in patched
+    with self.decoration_helper(patched,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+                                args,
+                                ^^^^^
+                                keywargs) as (newargs, newkeywargs):
+                                ^^^^^^^^^
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 1405, in decoration_helper
+    arg = exit_stack.enter_context(patching)
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 530, in enter_context
+    result = _enter(cm)
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 1497, in __enter__
+    original, local = self.get_original()
+                      ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 1467, in get_original
+    raise AttributeError(
+        "%s does not have the attribute %r" % (target, name)
+    )
+AttributeError: <module 'whisper.audio' from 'C:\\Users\\mshan\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\whisper\\audio.py'> does not have the attribute 'get_duration'
+
+======================================================================
+FAIL: test_clean_text (__main__.TestTextFormatter.test_clean_text)
+Test text cleaning functionality.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Developer Mode\Insightron\test_insightron.py", line 39, in test_clean_text
+    self.assertNotIn("um", result.lower())
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'um' unexpectedly found in 'um hello there what happens is that i think this is a test and what i mean is that this should work'
+
+======================================================================
+FAIL: test_full_transcription_workflow (__main__.TestIntegration.test_full_transcription_workflow)
+Test the complete transcription workflow.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mshan\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py", line 1426, in patched
+    return func(*newargs, **newkeywargs)
+  File "D:\Developer Mode\Insightron\test_insightron.py", line 286, in test_full_transcription_workflow
+    self.assertIn('test-model', markdown_content)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'test-model' not found in '---\ntitle: tmpdr5paqcg\ndate: 2025-11-30 22:01:56\nduration: 0:02\nduration_seconds: 2.0\nfile_size: 1.0 MB\nmodel: tiny\nlanguage: en\nformatting: auto\ntags: [transcription, audio-note, whisper]\ncreated: 2025-11-30 22:01:56\n---\n\n# 🎤 Transcription: tmpdr5paqcg\n\n## 📊 Metadata\n- **Duration:** 0:02 (2.0 seconds)\n- **File Size:** 1.0 MB\n- **Model:** tiny\n- **Language:** en\n- **Formatting:** Auto\n- **Transcribed:** 2025-11-30 22:01:56\n\n## 📝 Transcript\n\nHello world, this is a test transcription.\n\n## 🕐 Timestamps\n\n**00:00 - 00:02:** Hello world, this is a test transcription.\n\n\n---\n*Transcribed using Insightron*  \n*Generated on 2025-11-30 22:01:56*\n'
+
+----------------------------------------------------------------------
+Ran 23 tests in 1.161s
+
+FAILED (failures=2, errors=1)
+
+============================================================
+Test Summary:
+Tests run: 23
+Failures: 2
+Errors: 1
+Success rate: 87.0%
+============================================================

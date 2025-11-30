@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import wave
 import librosa
+import soundfile
 import logging
 from typing import Dict, Any, Optional, Callable
 from utils import create_markdown
@@ -113,11 +114,12 @@ class AudioTranscriber:
             except Exception as e:
                 logger.warning(f"Librosa duration extraction failed: {e}")
                 try:
-                    # Fallback to whisper's method
-                    duration = whisper.audio.get_duration(str(audio))
-                    logger.debug(f"Duration extracted using whisper: {duration:.2f}s")
+                    # Fallback to soundfile
+                    info = soundfile.info(str(audio))
+                    duration = info.duration
+                    logger.debug(f"Duration extracted using soundfile: {duration:.2f}s")
                 except Exception as e2:
-                    logger.warning(f"Whisper duration extraction failed: {e2}")
+                    logger.warning(f"Soundfile duration extraction failed: {e2}")
                     duration = 0
             
             metadata = {

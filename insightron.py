@@ -9,6 +9,17 @@ import sys
 import os
 from pathlib import Path
 
+# Force UTF-8 output on Windows (use reconfigure to avoid closing stdout)
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        # Fallback: ignore if reconfigure fails
+        pass
+
 # Add current directory to Python path
 sys.path.append(str(Path(__file__).parent))
 

@@ -136,6 +136,11 @@ class TextFormatter:
             
             # Check if it's a filler word
             if word in self.filler_words:
+                # Always remove strict fillers
+                if word in {'um', 'uh', 'er', 'ah'}:
+                    i += 1
+                    continue
+
                 # Count consecutive filler words
                 filler_count = 0
                 j = i

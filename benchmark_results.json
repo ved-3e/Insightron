@@ -1,0 +1,109 @@
+{
+  "system_info": {
+    "cpu_count": 12,
+    "memory_gb": 15.73,
+    "python_version": "3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "win32"
+  },
+  "timestamp": "2025-11-30 22:35:53",
+  "text_formatter": {
+    "Small text": {
+      "text_length": 36,
+      "clean_time": 3.910064697265625e-05,
+      "format_time": 0.0008599758148193359,
+      "custom_time": 0.0001232624053955078,
+      "total_time": 0.0010223388671875,
+      "chars_per_second": 35213.37313432836
+    },
+    "Medium text": {
+      "text_length": 1850,
+      "clean_time": 0.0009284019470214844,
+      "format_time": 0.0013065338134765625,
+      "custom_time": 0.015002250671386719,
+      "total_time": 0.017237186431884766,
+      "chars_per_second": 107326.10030706244
+    },
+    "Large text": {
+      "text_length": 18500,
+      "clean_time": 0.009338140487670898,
+      "format_time": 0.016312599182128906,
+      "custom_time": 1.2687461376190186,
+      "total_time": 1.2943968772888184,
+      "chars_per_second": 14292.370697578639
+    },
+    "Very large text": {
+      "text_length": 74000,
+      "clean_time": 0.03609418869018555,
+      "format_time": 0.05522727966308594,
+      "custom_time": 19.600099563598633,
+      "total_time": 19.691421031951904,
+      "chars_per_second": 3757.981705836533
+    }
+  },
+  "markdown_creation": {
+    "Small transcript": {
+      "text_length": 27,
+      "markdown_length": 628,
+      "creation_time": 0.0005681514739990234,
+      "chars_per_second": 47522.53797733949
+    },
+    "Medium transcript": {
+      "text_length": 3600,
+      "markdown_length": 7805,
+      "creation_time": 0.0003447532653808594,
+      "chars_per_second": 10442250.62240664
+    },
+    "Large transcript": {
+      "text_length": 48000,
+      "markdown_length": 96905,
+      "creation_time": 0.0011188983917236328,
+      "chars_per_second": 42899337.73705519
+    },
+    "Very large transcript": {
+      "text_length": 265000,
+      "markdown_length": 532238,
+      "creation_time": 0.005021333694458008,
+      "chars_per_second": 52774823.60761597
+    }
+  },
+  "memory_usage": {
+    "initial_memory_mb": 219.09765625,
+    "formatter_memory_mb": 0.640625,
+    "markdown_memory_mb": 0.1953125,
+    "total_memory_mb": 0.8359375
+  },
+  "concurrent_operations": {
+    "1_threads": {
+      "total_time": 0.0044481754302978516,
+      "worker_count": 1,
+      "avg_processing_time": 0.0038313865661621094,
+      "throughput": 224.8112772685855,
+      "executor_type": "ThreadPoolExecutor"
+    },
+    "2_threads": {
+      "total_time": 0.00726318359375,
+      "worker_count": 2,
+      "avg_processing_time": 0.0033245086669921875,
+      "throughput": 275.3613445378151,
+      "executor_type": "ThreadPoolExecutor"
+    },
+    "4_threads": {
+      "total_time": 0.014859199523925781,
+      "worker_count": 4,
+      "avg_processing_time": 0.0034266114234924316,
+      "throughput": 269.19350490982606,
+      "executor_type": "ThreadPoolExecutor"
+    },
+    "8_threads": {
+      "total_time": 0.03040337562561035,
+      "worker_count": 8,
+      "avg_processing_time": 0.0040302276611328125,
+      "throughput": 263.1286768453823,
+      "executor_type": "ThreadPoolExecutor"
+    },
+    "4_processes": {
+      "error": "Can't get local object 'PerformanceBenchmark.benchmark_concurrent_operations.<locals>.process_text_worker'",
+      "executor_type": "ProcessPoolExecutor"
+    }
+  }
+}

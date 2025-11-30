@@ -10,6 +10,16 @@ import sys
 import os
 from pathlib import Path
 
+# Force UTF-8 output on Windows (use reconfigure to avoid closing stdout)
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 def run_command(command, description):
     """Run a command and handle errors gracefully"""
     print(f"🔄 {description}...")
@@ -44,7 +54,6 @@ def main():
     # Try different NumPy installation strategies
     numpy_commands = [
         "python -m pip install numpy --only-binary=all --upgrade",
-        "python -m pip install numpy==1.24.4 --only-binary=all",
         "python -m pip install numpy --prefer-binary"
     ]
     

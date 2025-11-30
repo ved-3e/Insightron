@@ -165,56 +165,71 @@ class PerformanceBenchmark:
         }
     
     def benchmark_concurrent_operations(self) -> Dict:
-        """Benchmark concurrent text processing operations."""
+        """Benchmark concurrent text processing operations with improved thread pool."""
         print("🧪 Benchmarking Concurrent Operations...")
         
+        from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
         import threading
-        import queue
         
         formatter = TextFormatter()
         test_text = "This is a test sentence for concurrent processing. " * 100
-        results_queue = queue.Queue()
         
-        def process_text(text_id):
+        def process_text_worker(text_id):
             start_time = time.time()
             result = formatter.format_text(test_text)
             end_time = time.time()
-            results_queue.put({
+            return {
                 'thread_id': text_id,
                 'processing_time': end_time - start_time,
                 'result_length': len(result)
-            })
+            }
         
-        # Test with different numbers of concurrent threads
-        thread_counts = [1, 2, 4, 8]
+        # Test with different numbers of concurrent workers
+        worker_counts = [1, 2, 4, 8]
         results = {}
         
-        for thread_count in thread_counts:
-            print(f"  Testing with {thread_count} threads...")
+        for worker_count in worker_counts:
+            print(f"  Testing with {worker_count} workers (ThreadPoolExecutor)...")
             
-            threads = []
             start_time = time.time()
             
-            for i in range(thread_count):
-                thread = threading.Thread(target=process_text, args=(i,))
-                threads.append(thread)
-                thread.start()
-            
-            for thread in threads:
-                thread.join()
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                futures = [executor.submit(process_text_worker, i) for i in range(worker_count)]
+                thread_results = [f.result() for f in futures]
             
             end_time = time.time()
             
-            # Collect results
-            thread_results = []
-            while not results_queue.empty():
-                thread_results.append(results_queue.get())
-            
-            results[f'{thread_count}_threads'] = {
+            results[f'{worker_count}_threads'] = {
                 'total_time': end_time - start_time,
-                'thread_count': thread_count,
+                'worker_count': worker_count,
                 'avg_processing_time': sum(r['processing_time'] for r in thread_results) / len(thread_results),
-                'throughput': thread_count / (end_time - start_time)
+                'throughput': worker_count / (end_time - start_time),
+                'executor_type': 'ThreadPoolExecutor'
+            }
+        
+        # Test with ProcessPoolExecutor for comparison
+        print(f"  Testing with 4 workers (ProcessPoolExecutor)...")
+        start_time = time.time()
+        
+        try:
+            with ProcessPoolExecutor(max_workers=4) as executor:
+                futures = [executor.submit(process_text_worker, i) for i in range(4)]
+                process_results = [f.result() for f in futures]
+            
+            end_time = time.time()
+            
+            results['4_processes'] = {
+                'total_time': end_time - start_time,
+                'worker_count': 4,
+                'avg_processing_time': sum(r['processing_time'] for r in process_results) / len(process_results),
+                'throughput': 4 / (end_time - start_time),
+                'executor_type': 'ProcessPoolExecutor'
+            }
+        except Exception as e:
+            print(f"    ProcessPoolExecutor test failed: {e}")
+            results['4_processes'] = {
+                'error': str(e),
+                'executor_type': 'ProcessPoolExecutor'
             }
         
         return results
@@ -268,7 +283,10 @@ class PerformanceBenchmark:
         # Concurrent operations
         print(f"\n🔄 Concurrent Operations:")
         for name, data in self.results['concurrent_operations'].items():
-            print(f"  {name}: {data['throughput']:.2f} ops/sec")
+            if 'throughput' in data:
+                print(f"  {name}: {data['throughput']:.2f} ops/sec")
+            elif 'error' in data:
+                print(f"  {name}: Error - {data['error']}")
     
     def save_results(self, filename: str = "benchmark_results.json"):
         """Save benchmark results to JSON file."""
@@ -303,10 +321,34 @@ class PerformanceBenchmark:
         # Concurrent operations recommendations
         concurrent = self.results['concurrent_operations']
         single_thread_throughput = concurrent['1_threads']['throughput']
-        multi_thread_throughput = max(data['throughput'] for data in concurrent.values())
+        multi_thread_throughput = max(
+            data['throughput'] for key, data in concurrent.items() 
+            if 'throughput' in data and 'threads' in key
+        )
         
-        if multi_thread_throughput < single_thread_throughput * 1.5:
-            recommendations.append("Limited concurrency benefits. Consider thread pool optimization.")
+        speedup = multi_thread_throughput / single_thread_throughput if single_thread_throughput > 0 else 0
+        
+        if speedup < 1.5:
+            recommendations.append(
+                f"Limited threading speedup ({speedup:.2f}x). "
+                "✅ FIXED: Use batch_processor.py with ProcessPoolExecutor for CPU-bound tasks."
+            )
+        else:
+            recommendations.append(
+                f"Good threading performance ({speedup:.2f}x speedup). "
+                "Consider using batch_processor.py for even better performance."
+            )
+        
+        # Check if ProcessPoolExecutor performed better
+        if '4_processes' in concurrent and 'throughput' in concurrent['4_processes']:
+            process_throughput = concurrent['4_processes']['throughput']
+            thread_throughput = concurrent['4_threads']['throughput']
+            
+            if process_throughput > thread_throughput * 1.2:
+                recommendations.append(
+                    f"ProcessPoolExecutor is {process_throughput/thread_throughput:.2f}x faster! "
+                    "Use batch_processor.py with use_multiprocessing=True for batch operations."
+                )
         
         # System recommendations
         if self.system_info['memory_gb'] < 4:
@@ -314,6 +356,11 @@ class PerformanceBenchmark:
         
         if self.system_info['cpu_count'] < 4:
             recommendations.append("Limited CPU cores. Consider using smaller models for better performance.")
+        else:
+            recommendations.append(
+                f"System has {self.system_info['cpu_count']} cores. "
+                "Use batch_processor.py to leverage parallel processing."
+            )
         
         return recommendations
 

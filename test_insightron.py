@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Import modules to test
 from transcribe import AudioTranscriber
 from text_formatter import TextFormatter, format_transcript
-from utils import create_markdown, format_time
+from utils import create_markdown, format_timestamp
 from config import WHISPER_MODEL, TRANSCRIPTION_FOLDER
 
 # Configure test logging
@@ -75,12 +75,12 @@ class TestTextFormatter(unittest.TestCase):
 class TestUtils(unittest.TestCase):
     """Test utility functions."""
     
-    def test_format_time(self):
-        """Test time formatting function."""
-        self.assertEqual(format_time(0), "00:00")
-        self.assertEqual(format_time(60), "01:00")
-        self.assertEqual(format_time(125), "02:05")
-        self.assertEqual(format_time(3661), "61:01")
+    def test_format_timestamp(self):
+        """Test timestamp formatting function."""
+        self.assertEqual(format_timestamp(0), "00:00")
+        self.assertEqual(format_timestamp(60), "01:00")
+        self.assertEqual(format_timestamp(125), "02:05")
+        self.assertEqual(format_timestamp(3661), "01:01:01")
     
     def test_create_markdown(self):
         """Test markdown creation."""
@@ -165,12 +165,14 @@ class TestAudioTranscriber(unittest.TestCase):
         finally:
             os.unlink(tmp_path)
     
-    @patch('transcribe.whisper.audio.get_duration')
+    @patch('transcribe.soundfile.info')
     @patch('transcribe.librosa.get_duration')
-    def test_get_audio_metadata_fallback(self, mock_librosa, mock_whisper):
+    def test_get_audio_metadata_fallback(self, mock_librosa, mock_soundfile):
         """Test metadata extraction with fallback methods."""
         mock_librosa.side_effect = Exception("Librosa failed")
-        mock_whisper.return_value = 120.5
+        mock_info = Mock()
+        mock_info.duration = 120.5
+        mock_soundfile.return_value = mock_info
         
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
             tmp.write(b"fake audio data")
@@ -274,7 +276,7 @@ class TestIntegration(unittest.TestCase):
             
             # Verify results
             self.assertTrue(output_path.exists())
-            self.assertIn('test', str(output_path))
+            self.assertEqual(output_path.stem, Path(audio_path).stem)
             self.assertIn('text', transcription_data)
             self.assertIn('Hello world', transcription_data['text'])
             self.assertEqual(transcription_data['model'], 'tiny')
@@ -283,7 +285,7 @@ class TestIntegration(unittest.TestCase):
             # Verify markdown content
             markdown_content = output_path.read_text(encoding='utf-8')
             self.assertIn('Hello world', markdown_content)
-            self.assertIn('test-model', markdown_content)
+            self.assertIn('tiny', markdown_content)
             self.assertIn('transcription', markdown_content.lower())
             
         finally:
@@ -346,12 +348,12 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("Hello", result)
         self.assertIn("world", result)
     
-    def test_format_time_edge_cases(self):
-        """Test format_time with edge cases."""
-        self.assertEqual(format_time(0), "00:00")
-        self.assertEqual(format_time(0.5), "00:00")
-        self.assertEqual(format_time(59.9), "00:59")
-        self.assertEqual(format_time(3600), "60:00")
+    def test_format_timestamp_edge_cases(self):
+        """Test format_timestamp with edge cases."""
+        self.assertEqual(format_timestamp(0), "00:00")
+        self.assertEqual(format_timestamp(0.5), "00:00")
+        self.assertEqual(format_timestamp(59.9), "00:59")
+        self.assertEqual(format_timestamp(3600), "01:00:00")
 
 def run_tests():
     """Run all tests with detailed output."""
