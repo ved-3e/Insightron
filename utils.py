@@ -294,6 +294,201 @@ def sanitize_filename(filename: str) -> str:
     filename = filename.replace(' ', '_')
     # Limit length
     if len(filename) > 200:
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+    else:
+        return f"{minutes:02d}:{secs:02d}"
+
+
+def create_timestamps_section(segments: List[Dict[str, Any]], max_segments: int = 20) -> str:
+    """
+    Create a timestamps section from Whisper segments
+    
+    Args:
+        segments: List of segment dictionaries from Whisper
+        max_segments: Maximum number of segments to display
+        
+    Returns:
+        Formatted timestamps section
+    """
+    if not segments:
+        return "_No timestamp data available_"
+    
+    timestamp_lines = []
+    total_segments = len(segments)
+    segments_to_show = segments[:max_segments]
+    
+    for segment in segments_to_show:
+        start = segment.get('start', 0)
+        end = segment.get('end', 0)
+        text = segment.get('text', '').strip()
+        
+        start_time = format_timestamp(start)
+        end_time = format_timestamp(end)
+        
+        timestamp_lines.append(f"**{start_time} - {end_time}:** {text}")
+    
+    result = '\n\n'.join(timestamp_lines)
+    
+    # Add note if there are more segments
+    if total_segments > max_segments:
+        remaining = total_segments - max_segments
+        result += f"\n\n*... and {remaining} more segment{'s' if remaining > 1 else ''}*"
+    
+    return result
+
+
+def create_markdown(
+    filename: str,
+    text: str,
+    date: str,
+    duration: str,
+    file_size_mb: float,
+    model: str,
+    language: str,
+    formatting_style: str = "auto",
+    processing_time_seconds: float = 0,
+    duration_seconds: float = 0,
+    segments: List[Dict[str, Any]] = None,
+    **kwargs  # Accept additional kwargs and ignore them
+) -> str:
+    """
+    Create a formatted markdown document from transcription data with Obsidian-style frontmatter
+    
+    Args:
+        filename: Name of the audio file (without extension)
+        text: Transcribed text
+        date: Transcription date/time
+        duration: Audio duration (formatted)
+        file_size_mb: File size in MB
+        model: Whisper model used
+        language: Detected language
+        formatting_style: Text formatting style
+        processing_time_seconds: Time taken to process
+        duration_seconds: Duration in seconds
+        segments: Whisper segments for timestamps
+        **kwargs: Additional parameters (ignored for compatibility)
+        
+    Returns:
+        Formatted markdown content with frontmatter
+    """
+    try:
+        # Format the transcription text
+        formatted_text = format_text(text, formatting_style)
+        
+        # Create timestamps section if segments available
+        timestamps_section = ""
+        if segments:
+            timestamps_section = f"""## 🕐 Timestamps
+
+{create_timestamps_section(segments)}
+
+"""
+        
+        # Get current datetime
+        now = datetime.now()
+        created_date = now.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create Obsidian-compatible frontmatter
+        frontmatter = f"""---
+title: {filename}
+date: {created_date}
+duration: {duration}
+duration_seconds: {duration_seconds}
+file_size: {file_size_mb:.1f} MB
+model: {model}
+language: {language}
+formatting: {formatting_style}
+tags: [transcription, audio-note, whisper]
+created: {created_date}
+---"""
+        
+        # Create the full markdown document
+        markdown = f"""{frontmatter}
+
+# 🎤 Transcription: {filename}
+
+## 📊 Metadata
+- **Duration:** {duration} ({duration_seconds:.1f} seconds)
+- **File Size:** {file_size_mb:.1f} MB
+- **Model:** {model}
+- **Language:** {language}
+- **Formatting:** {formatting_style.capitalize()}
+- **Transcribed:** {created_date}
+
+## 📝 Transcript
+
+{formatted_text}
+
+{timestamps_section}
+---
+*Transcribed using Insightron*  
+*Generated on {created_date}*
+"""
+        
+        logger.info(f"Enhanced markdown created for: {filename}")
+        return markdown
+        
+    except Exception as e:
+        logger.error(f"Error creating markdown: {e}")
+        # Return basic markdown on error
+        return f"""---
+title: {filename}
+date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+tags: [transcription, error]
+---
+
+# {filename}
+
+## Transcription
+
+{text}
+
+---
+
+*Error creating full markdown: {e}*
+*Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
+"""
+
+
+def format_duration(seconds: float) -> str:
+    """
+    Format duration in seconds to human-readable format
+    
+    Args:
+        seconds: Duration in seconds
+        
+    Returns:
+        Formatted string (e.g., "2:34" or "1:23:45")
+    """
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    elif seconds < 3600:
+        minutes = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{minutes}:{secs:02d}"
+    else:
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename by removing invalid characters
+    
+    Args:
+        filename: Original filename
+        
+    Returns:
+        Sanitized filename safe for filesystem
+    """
+    import re
+    # Remove invalid characters
+    filename = re.sub(r'[<>:"/\\|?*]', '', filename)
+    # Replace spaces with underscores
+    filename = filename.replace(' ', '_')
+    # Limit length
+    if len(filename) > 200:
         filename = filename[:200]
     return filename
 
@@ -323,3 +518,76 @@ if __name__ == "__main__":
     
     markdown = create_markdown(**test_data)
     print(markdown)
+
+
+def create_realtime_note(
+    filename: str,
+    text: str,
+    date: str,
+    duration: str,
+    file_size_mb: float,
+    model: str,
+    language: str,
+    formatting_style: str = "auto",
+    duration_seconds: float = 0,
+    segments: List[Dict[str, Any]] = None,
+    folder_path: str = ""
+) -> str:
+    """
+    Create a formatted markdown note specifically for Realtime Transcription
+    Matches user-requested Obsidian format
+    """
+    try:
+        # Format the transcription text
+        formatted_text = format_text(text, formatting_style)
+        
+        # Create timestamps section
+        timestamps_section = ""
+        if segments:
+            timestamps_section = f"## 🕐 Timestamps\n\n{create_timestamps_section(segments, max_segments=1000)}"
+
+        # Create Obsidian-compatible frontmatter
+        frontmatter = f"""---
+title: {filename}
+date: {date}
+duration: {duration}
+duration_seconds: {duration_seconds:.3f}
+file_size: {file_size_mb:.1f} MB
+model: {model}
+language: {language}
+formatting: {formatting_style}
+tags: [transcription, audio-note, whisper]
+created: {date}
+---"""
+        
+        # Create the full markdown document
+        markdown = f"""{frontmatter}
+
+# 🎤 Transcription: {filename}
+
+## 📊 Metadata
+- **Duration:** {duration} ({duration_seconds:.1f} seconds)
+- **File Size:** {file_size_mb:.1f} MB
+- **Model:** {model}
+- **Language:** {language}
+- **Formatting:** {formatting_style.capitalize()}
+- **Transcribed:** {date}
+
+## 📝 Transcript
+
+{formatted_text}
+
+{timestamps_section}
+
+---
+*Transcribed using Insightron - Realtime Transcription*  
+*Generated on {date}*
+
+
+Folder: {folder_path} 
+"""
+        return markdown
+        
+    except Exception as e:
+        logger.error(f"Error creating realtime note: {e}")
+        return f"Error generating note: {e}"

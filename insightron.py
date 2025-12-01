@@ -20,7 +20,7 @@ if sys.platform == "win32":
         # Fallback: ignore if reconfigure fails
         pass
 
-# Add current directory to Python path
+# Add current directory to Python path  
 sys.path.append(str(Path(__file__).parent))
 
 try:
@@ -116,3 +116,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

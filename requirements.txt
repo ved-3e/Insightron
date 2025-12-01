@@ -30,3 +30,6 @@ colorama>=0.4.6
 # Modern UI Framework
 customtkinter>=5.2.0
 packaging>=23.0
+
+# Realtime Audio Capture
+sounddevice>=0.4.6

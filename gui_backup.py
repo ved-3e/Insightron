@@ -7,10 +7,8 @@ import os
 import logging
 from typing import Optional, List
 from datetime import datetime
-from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER, RECORDINGS_FOLDER
+from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER
 from settings_manager import SettingsManager
-from realtime_transcriber import RealtimeTranscriber
-from utils import create_realtime_note
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,8 +52,6 @@ class InsightronGUI:
         self.selected_batch_files = []
         self.is_transcribing = False
         self.transcriber = None
-        self.realtime_transcriber = None
-        self.is_recording = False
         
         # Setup UI
         self.setup_ui()
@@ -144,16 +140,13 @@ class InsightronGUI:
         
         self.tab_single = self.tab_view.add("Single File")
         self.tab_batch = self.tab_view.add("Batch Mode")
-        self.tab_realtime = self.tab_view.add("Realtime")
         
         # Configure tab colors
         self.tab_single.configure(fg_color=self.COLORS['background'])
         self.tab_batch.configure(fg_color=self.COLORS['background'])
-        self.tab_realtime.configure(fg_color=self.COLORS['background'])
         
         self.setup_single_file_tab()
         self.setup_batch_tab()
-        self.setup_realtime_tab()
         
         # ===== SHARED COMPONENTS =====
         self.setup_settings_panel()
@@ -288,197 +281,6 @@ class InsightronGUI:
             hover_color=self.COLORS['accent_hover']
         )
         self.batch_transcribe_btn.pack(fill="x", padx=20, pady=(10, 20))
-
-
-    def setup_realtime_tab(self):
-        """Realtime Transcription Tab"""
-        rt_card = self.create_card(self.tab_realtime)
-        rt_card.pack(fill="x", pady=20, padx=20)
-        
-        inner = ctk.CTkFrame(rt_card, fg_color="transparent")
-        inner.pack(fill="x", padx=30, pady=30)
-        
-        icon = ctk.CTkLabel(inner, text="🎙️", font=('Segoe UI', 48))
-        icon.pack(pady=(0, 15))
-        
-        ctk.CTkLabel(
-            inner, text="Select Microphone", font=('Segoe UI', 14, 'bold'),
-            text_color=self.COLORS['text_secondary']
-        ).pack(pady=(0, 5))
-        
-        self.mic_var = ctk.StringVar(value="Loading...")
-        self.mic_combo = ctk.CTkComboBox(
-            inner, variable=self.mic_var, values=["Loading..."],
-            font=('Segoe UI', 14), width=300, height=40, corner_radius=8
-        )
-        self.mic_combo.pack(pady=(0, 20))
-        
-        ctk.CTkButton(
-            inner, text="🔄 Refresh", command=self.refresh_microphones,
-            width=80, height=24, font=('Segoe UI', 11),
-            fg_color="transparent", border_width=1,
-            border_color=self.COLORS['border']
-        ).pack(pady=(0, 20))
-        
-        # Audio Level Indicator
-        ctk.CTkLabel(
-            inner, text="Audio Level", font=('Segoe UI', 12, 'bold'),
-            text_color=self.COLORS['text_secondary']
-        ).pack(pady=(10, 5))
-        
-        self.audio_level_bar = ctk.CTkProgressBar(
-            inner, width=300, height=20,
-            progress_color=self.COLORS['success']
-        )
-        self.audio_level_bar.pack(pady=(0, 20))
-        self.audio_level_bar.set(0)
-        
-        self.record_btn = ctk.CTkButton(
-            self.tab_realtime, text="🔴 Start Recording",
-            command=self.toggle_recording, font=('Segoe UI', 18, 'bold'),
-            height=56, corner_radius=12, fg_color=self.COLORS['error'],
-            hover_color='#DC2626'
-        )
-        self.record_btn.pack(fill="x", padx=20, pady=(10, 20))
-        
-        self.root.after(100, self.init_realtime)
-
-    def init_realtime(self):
-        """Initialize realtime transcriber"""
-        try:
-            self.realtime_transcriber = RealtimeTranscriber()
-            self.refresh_microphones()
-        except Exception as e:
-            logger.error(f"Failed to init realtime: {e}")
-            self.mic_var.set("Error loading devices")
-
-    def refresh_microphones(self):
-        """Refresh microphone list"""
-        if not self.realtime_transcriber:
-            return
-        devices = self.realtime_transcriber.get_microphones()
-        self.mic_devices = devices
-        names = [d['name'] for d in devices] or ["No microphones found"]
-        self.mic_combo.configure(values=names)
-        if names:
-            self.mic_combo.set(names[0])
-
-    def toggle_recording(self):
-        """Toggle recording"""
-        if not self.is_recording:
-            self.start_recording()
-        else:
-            self.stop_recording()
-
-    def start_recording(self):
-        """Start recording"""
-        try:
-            name = self.mic_var.get()
-            idx = -1
-            for d in self.mic_devices:
-                if d['name'] == name:
-                    idx = d['index']
-                    break
-            
-            self.is_recording = True
-            self.record_btn.configure(text="⬛ Stop Recording", fg_color=self.COLORS['primary'])
-            self.update_progress("🎙️ Listening...")
-            self.update_results(f"--- Recording Started ({name}) ---")
-            
-            self.realtime_transcriber.model_size = self.model_var.get()
-            lang = self.language_var.get().split(' - ')[0]
-            self.realtime_transcriber.language = lang
-            self.realtime_transcriber.start_transcription(idx, self.on_realtime_text, self.on_audio_level)
-        except Exception as e:
-            self.handle_error(e)
-            self.stop_recording()
-
-    def stop_recording(self):
-        """Stop recording"""
-        self.is_recording = False
-        self.record_btn.configure(text="🔴 Start Recording", fg_color=self.COLORS['error'])
-        if self.realtime_transcriber:
-            self.realtime_transcriber.stop_transcription()
-        
-        # Save recording to Recordings folder
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"recording_{timestamp}.wav"
-            save_path = RECORDINGS_FOLDER / filename
-            
-            saved_file = self.realtime_transcriber.save_recording(str(save_path))
-            if saved_file:
-                self.update_results(f"⏹ Stopped recording - Saved to {filename}")
-                
-                # Save transcription note
-                try:
-                    data = self.realtime_transcriber.get_transcription_data()
-                    if data['text']:
-                        note_filename = f"recording_{timestamp}"
-                        
-                        # Calculate duration
-                        duration_seconds = 0
-                        if self.realtime_transcriber.full_audio_buffer.size > 0:
-                            duration_seconds = len(self.realtime_transcriber.full_audio_buffer) / self.realtime_transcriber.sample_rate
-                        
-                        minutes = int(duration_seconds // 60)
-                        seconds = int(duration_seconds % 60)
-                        duration_str = f"{minutes}:{seconds:02d}"
-                        
-                        note_content = create_realtime_note(
-                            filename=note_filename,
-                            text=data['text'],
-                            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            duration=duration_str,
-                            file_size_mb=save_path.stat().st_size / (1024 * 1024) if save_path.exists() else 0,
-                            model=self.realtime_transcriber.model_size,
-                            language=data['language'],
-                            formatting_style=self.formatting_var.get(),
-                            duration_seconds=duration_seconds,
-                            segments=data['segments'],
-                            folder_path=str(TRANSCRIPTION_FOLDER)
-                        )
-                        
-                        note_path = TRANSCRIPTION_FOLDER / f"{note_filename}.md"
-                        note_path.write_text(note_content, encoding='utf-8')
-                        self.update_results(f"📝 Saved note to Insights: {note_filename}.md")
-                        
-                except Exception as e:
-                    logger.error(f"Failed to save note: {e}")
-                    self.update_results(f"❌ Failed to save note: {e}")
-                    
-            else:
-                self.update_results("⏹ Stopped recording - No audio to save")
-        except Exception as e:
-            logger.error(f"Failed to save recording: {e}")
-            self.update_results(f"⏹ Stopped recording - Save failed: {e}")
-        
-        self.update_progress("✅ Stopped")
-        # Reset audio level bar
-        self.audio_level_bar.set(0)
-        self.audio_level_bar.configure(progress_color=self.COLORS['success'])
-
-    def on_realtime_text(self, text):
-        """Callback for realtime text"""
-        self.update_results(f"🗣️ {text}")
-
-    def on_audio_level(self, level):
-        """Update audio level indicator"""
-        self.root.after(0, lambda: self._update_audio_level(level))
-
-    def _update_audio_level(self, level):
-        """Update progress bar with color coding"""
-        self.audio_level_bar.set(level)
-        
-        # Color coding: green (0-0.5), yellow (0.5-0.8), red (0.8-1.0)
-        if level < 0.5:
-            color = self.COLORS['success']  # Green
-        elif level < 0.8:
-            color = '#F59E0B'  # Yellow/Orange
-        else:
-            color = self.COLORS['error']  # Red
-        
-        self.audio_level_bar.configure(progress_color=color)
 
     def setup_settings_panel(self):
         """Premium Settings Panel"""

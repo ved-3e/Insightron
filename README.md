@@ -1,4 +1,4 @@
-# 🎤 Insightron v1.2.0 - Next-Gen AI Transcriber
+# 🎤 Insightron v1.3.0 - Next-Gen AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
@@ -8,7 +8,7 @@ Insightron is a next-generation transcription application powered by **faster-wh
 
 ### 🚀 **Performance & Reliability**
 - **Optimized Processing**: Enhanced algorithms for 40% faster transcription
-# 🎤 Insightron v1.2.0 - Enhanced Whisper AI Transcriber
+
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
@@ -23,6 +23,7 @@ Insightron is a modern, high-performance application for transcribing audio file
 - **📊 Real-time Progress**: Segment-level progress updates for smooth UX
 - **💾 Smart File Operations**: Atomic writes prevent data corruption
 - **🔧 Cross-Platform**: Seamless Windows, macOS, and Linux support
+- **🔴 Realtime Transcription**: Live audio capture with automatic Obsidian note saving
 
 ### 🎨 **Modern Dark-Black Theme** ✨
 - **Pure Black Background**: Material Dark theme perfect for OLED screens

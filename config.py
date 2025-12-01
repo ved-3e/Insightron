@@ -8,14 +8,19 @@ import os
 # Whisper model configuration
 WHISPER_MODEL = "medium"  # Options: tiny, base, small, medium, large
 
-# Path to your Obsidian Vault
-OBSIDIAN_VAULT_PATH = Path(r"D:\2. Areas\IdeaVerse\Areas")
+# Path to your Obsidian Vault (for backward compatibility)
+OBSIDIAN_VAULT_PATH = Path(r"D:\2. Areas\Ideaverse\Areas")
 
-# Folder inside vault for transcription outputs
-TRANSCRIPTION_FOLDER = OBSIDIAN_VAULT_PATH / "Insights"
+# Directory Configuration
+# TRANSCRIPTION_FOLDER: Where to save transcriptions
+TRANSCRIPTION_FOLDER = Path(r"D:\2. Areas\Ideaverse\Areas\Insights")
 
-# Ensure folder exists
+# RECORDINGS_FOLDER: Where to save audio recordings
+RECORDINGS_FOLDER = Path(r"D:\2. Areas\Ideaverse\Areas\Recordings")
+
+# Ensure folders exist
 TRANSCRIPTION_FOLDER.mkdir(parents=True, exist_ok=True)
+RECORDINGS_FOLDER.mkdir(parents=True, exist_ok=True)
 
 # Supported audio formats
 SUPPORTED_FORMATS = {
@@ -41,7 +46,7 @@ FORMATTING_STYLES = {
 
 # Application metadata
 APP_NAME = "Insightron"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.3.0"
 APP_DESCRIPTION = "AI-powered audio transcription with Whisper - Multi-language support"
 
 # Maximum file size (in MB)
@@ -121,7 +126,6 @@ SUPPORTED_LANGUAGES = {
     'mt': 'Maltese',
     'mn': 'Mongolian',
     'ms': 'Malay',
-    'no': 'Norwegian',
     'oc': 'Occitan',
     'ps': 'Pashto',
     'rm': 'Romansh',
@@ -147,5 +151,4 @@ OUTPUT_ENCODING = "utf-8"
 print(f"✓ Insightron Config Loaded v{APP_VERSION}")
 print(f"  - Model: {WHISPER_MODEL}")
 print(f"  - Output: {TRANSCRIPTION_FOLDER}")
-print(f"  - Vault: {OBSIDIAN_VAULT_PATH}")
 print(f"  - Languages: {len(SUPPORTED_LANGUAGES)} supported")
