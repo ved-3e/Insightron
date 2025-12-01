@@ -3,7 +3,7 @@
 # Optimized for compatibility and faster installation
 
 # Core Whisper AI (latest stable)
-openai-whisper>=20231117
+faster-whisper>=1.0.0
 
 # Essential audio processing (minimal versions)
 librosa>=0.10.0

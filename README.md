@@ -1,24 +1,39 @@
-# 🎤 Insightron v1.1.0 - Enhanced Whisper AI Transcriber
+# 🎤 Insightron v1.2.0 - Next-Gen AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
-Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring an elegant macOS-inspired interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility and **comprehensive multi-language support**.
+Insightron is a next-generation transcription application powered by **faster-whisper** (CTranslate2), featuring a stunning dark-themed GUI, batch processing capabilities, and seamless Obsidian integration. Experience up to **4x faster transcription** with lower memory usage, all in a premium modern interface.
 
 ## ✨ Key Features
 
 ### 🚀 **Performance & Reliability**
 - **Optimized Processing**: Enhanced algorithms for 40% faster transcription
-- **Smart Error Handling**: Comprehensive validation with graceful fallbacks
-- **Atomic File Operations**: Safe file writing prevents data corruption
-- **Memory Efficient**: Optimized memory usage for large audio files
-- **Cross-Platform**: Enhanced Windows, macOS, and Linux compatibility
-- **Enhanced Diagnostics**: Comprehensive troubleshooting and repair tools
+# 🎤 Insightron v1.2.0 - Enhanced Whisper AI Transcriber
 
-### 🎨 **Modern Interface**
-- **macOS-Inspired Design**: Clean, card-based layout with smooth animations
-- **Intuitive Controls**: One-click transcription with real-time progress
-- **Responsive Layout**: Adapts to different screen sizes and preferences
-- **Accessibility**: High contrast, clear typography, and keyboard navigation
+**Transform audio into beautifully structured insights with lightning-fast precision.**
+
+Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring a premium CustomTkinter interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility and **comprehensive multi-language support**.
+
+## ✨ Key Features
+
+### 🚀 **Performance & Reliability**
+- **⚡ faster-whisper Engine**: Up to **4x faster** transcription using CTranslate2 optimization
+- **🧠 Lower Memory Usage**: INT8 quantization for efficient CPU processing
+- **🎯 GPU Acceleration**: Automatic CUDA detection for maximum speed
+- **📊 Real-time Progress**: Segment-level progress updates for smooth UX
+- **💾 Smart File Operations**: Atomic writes prevent data corruption
+- **🔧 Cross-Platform**: Seamless Windows, macOS, and Linux support
+
+### 🎨 **Modern Dark-Black Theme** ✨
+- **Pure Black Background**: Material Dark theme perfect for OLED screens
+- **Premium Color Palette**: 
+  - 🔵 Bright Blue for Model selection
+  - 🟣 Purple for Language selection
+  - 🟢 Emerald for Formatting options
+- **Tabbed Interface**: Dedicated tabs for Single File and Batch Mode
+- **Settings Persistence**: Your preferences automatically saved
+- **Compact Timestamped Logs**: Terminal-style output with `[HH:MM:SS]` timestamps
+- **Smooth Hover Effects**: Premium animations throughout the UI
 
 ### 🎵 **Audio Excellence**
 - **Universal Format Support**: MP3, WAV, M4A, FLAC, MP4, OGG, AAC, WMA
@@ -106,15 +121,23 @@ python cli.py arabic_audio.mp3 -l ar -v
 
 ### **GUI Interface**
 
+#### **Single File Mode**
 1. **Launch**: Run `python insightron.py`
-2. **Select Audio**: Click "Choose File" to browse for audio
-3. **Configure**: Choose Whisper model, language, and formatting style
-   - **Language**: Select from 100+ supported languages or use "auto" for detection
-   - **Model**: Choose between tiny, base, small, medium, or large for speed vs. accuracy
-   - **Formatting**: Select auto, paragraphs, or minimal text formatting
-4. **Transcribe**: Click "Start Transcription"
-5. **Review**: View results and open output folder
-6. **Troubleshoot**: Run `python troubleshoot.py` if issues occur
+2. **Select Tab**: Use "Single File" tab (default)
+3. **Choose Audio**: Click "📁 Choose Audio File"
+4. **Configure Settings**: Select Model, Language, and Formatting (saved automatically)
+5. **Transcribe**: Click "⚡ Start Transcription"
+6. **Monitor**: Watch real-time progress in the status bar and timestamped log
+7. **Review**: Open output folder when complete
+
+#### **Batch Mode** 📦
+1. **Switch Tab**: Click "Batch Mode" tab
+2. **Select Files**: 
+   - Click "📄 Choose Files" to select multiple audio files
+   - OR click "📂 Choose Folder" to process an entire folder
+3. **Process**: Click "⚡ Process All Files"
+4. **Monitor**: Track progress as each file is completed in the log
+5. **Review**: Check summary statistics when finished
 
 ### **Command Line Interface**
 
@@ -154,8 +177,9 @@ python cli.py audio.mp3 -q
 ```
 insightron/
 ├── insightron.py                 # 🚀 Main application entry point
-├── gui.py                  # 🎨 Enhanced macOS-style GUI
+├── gui.py                  # 🎨 Modern CustomTkinter GUI
 ├── cli.py                  # ⚡ Command line interface
+├── batch_processor.py      # 📦 Batch processing for multiple files
 ├── transcribe.py           # 🧠 Core transcription engine
 ├── text_formatter.py       # 📝 Intelligent text processing
 ├── utils.py                # 🔧 Utility functions
@@ -164,8 +188,8 @@ insightron/
 ├── troubleshoot.py         # 🔍 Enhanced diagnostic and repair tool
 ├── install_dependencies.py # 📦 Cross-platform dependency installer
 ├── install_windows.bat     # 📦 Windows-optimized installer
-├── requirements.txt        # 📦 Full dependencies (v1.0.0)
-├── requirements-minimal.txt # 📦 Minimal dependencies (v1.0.0)
+├── requirements.txt        # 📦 Full dependencies (v1.2.0)
+├── requirements-minimal.txt # 📦 Minimal dependencies
 ├── test_formatting.py      # 🧪 Text formatting tests
 ├── test_macos_gui.py       # 🧪 GUI interface tests
 └── README.md              # 📖 This documentation
@@ -452,23 +476,42 @@ black *.py
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
 
-**Insightron v1.1.0** - Enhanced Whisper AI Transcription Tool with Multi-Language Support
+**Insightron v1.2.0** - Enhanced Whisper AI Transcription Tool with Modern UI
 
-## 🆕 What's New in v1.1.0
+## 🆕 What's New in v1.2.0
 
-### **Multi-Language Support**
+### **🚀 Performance Engine Swap**
+- ✅ **faster-whisper Integration**: Migrated from `openai-whisper` to `faster-whisper` (CTranslate2)
+- ✅ **4x Speed Boost**: Up to 4x faster transcription on both CPU and GPU
+- ✅ **Lower Memory Usage**: Significantly reduced RAM consumption
+- ✅ **INT8 Quantization**: Optimized for CPU with minimal accuracy loss
+- ✅ **GPU Auto-Detection**: Automatic CUDA acceleration when available
+- ✅ **Real-time Progress**: Segment-level progress tracking for smooth UX
+
+### **🎨 Modern Dark-Black Theme**
+- ✅ **Pure Black Background**: Material Dark theme (`#000000`) perfect for OLED
+- ✅ **Premium Color Palette**: Bright Blue, Purple, and Emerald accents
+- ✅ **Polished Cards**: Subtle borders and improved spacing
+- ✅ **Enhanced Typography**: Larger icons and better font hierarchy
+- ✅ **Smooth Animations**: Premium hover effects throughout
+
+### **📦 Batch Processing**
+- ✅ **Tabbed Interface**: Dedicated "Batch Mode" tab
+- ✅ **Multi-File Selection**: Process multiple files or entire folders at once
+- ✅ **Optimized Engine**: Reuses model instance for faster batch processing
+- ✅ **Thread Pool**: Concurrent processing for maximum throughput
+- ✅ **Progress Tracking**: Real-time updates for each file
+
+### **💾 Settings Persistence**
+- ✅ **Automatic Saving**: Model, Language, and Formatting preferences saved to `user_settings.json`
+- ✅ **Auto-Load**: Settings restored on startup
+- ✅ **Seamless UX**: No need to reconfigure every session
+
+### **📝 Compact Timestamped Logs**
+- ✅ **Terminal-Style Output**: Professional log format with `[HH:MM:SS]` timestamps
+- ✅ **Smaller Font**: Consolas 11pt for compact display
+- ✅ **Clean Messages**: Concise, informative status updates
+
+### **Previous Updates (v1.1.0)**
 - ✅ **100+ Languages**: Support for all Whisper-supported languages
-- ✅ **Auto-Detection**: Intelligent language detection for multilingual content  
-- ✅ **Manual Selection**: Choose specific languages for optimal accuracy
-- ✅ **UTF-8 Encoding**: Perfect support for non-Latin scripts and special characters
-- ✅ **Language-Aware Processing**: Optimized transcription parameters for each language
-
-### **Enhanced Interface**
-- ✅ **GUI Language Selector**: Easy language selection in the graphical interface
-- ✅ **CLI Language Support**: Command-line language selection with `-l` flag
-- ✅ **Improved Documentation**: Comprehensive multi-language examples and usage guides
-
-### **Technical Improvements**
-- ✅ **UTF-8 Encoding**: Ensures proper handling of all character sets
-- ✅ **Language Validation**: Automatic fallback to auto-detection for invalid languages
-- ✅ **Enhanced Logging**: Better language detection and processing information
+- ✅ **UTF-8 Encoding**: Perfect support for non-Latin scripts

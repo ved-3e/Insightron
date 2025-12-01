@@ -2,7 +2,7 @@
 # Optimized for performance, reliability, and cross-platform compatibility
 
 # Core Whisper AI (latest stable with enhanced features)
-openai-whisper>=20231117
+faster-whisper>=1.0.0
 
 # Essential audio processing (optimized versions for stability)
 librosa>=0.10.1
@@ -26,3 +26,7 @@ pytest>=7.0.0
 
 # Enhanced error handling and logging
 colorama>=0.4.6
+
+# Modern UI Framework
+customtkinter>=5.2.0
+packaging>=23.0

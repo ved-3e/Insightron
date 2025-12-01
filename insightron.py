@@ -25,7 +25,7 @@ sys.path.append(str(Path(__file__).parent))
 
 try:
     from gui import InsightronGUI
-    import tkinter as tk
+    import customtkinter as ctk
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please install the required dependencies:")
@@ -47,9 +47,9 @@ def check_dependencies():
         missing_deps.append("librosa")
     
     try:
-        import tkinter
+        import customtkinter
     except ImportError:
-        missing_deps.append("tkinter (usually comes with Python)")
+        missing_deps.append("customtkinter")
     
     if missing_deps:
         print("❌ Missing dependencies:")
@@ -95,7 +95,11 @@ def main():
     
     try:
         # Create and run the GUI
-        root = tk.Tk()
+        # System settings for CustomTkinter
+        ctk.set_appearance_mode("Dark")
+        ctk.set_default_color_theme("dark-blue")
+        
+        root = ctk.CTk()
         app = InsightronGUI(root)
         
         # Center the window
