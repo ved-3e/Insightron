@@ -1,3 +1,4 @@
+import collections
 import sounddevice as sd
 import numpy as np
 import threading
@@ -35,13 +36,14 @@ class RealtimeTranscriber:
         self.block_size = 4096  # Audio block size
         
         # Silence detection parameters
-        self.silence_threshold = 0.01  # Amplitude threshold
-        self.silence_duration = 0.8    # Seconds of silence to trigger transcription
+        self.silence_threshold = 0.015  # Amplitude threshold (optimized)
+        self.silence_duration = 0.6    # Seconds of silence to trigger transcription (faster)
         self.min_chunk_duration = 1.0  # Minimum audio duration to transcribe
         
         # State
-        self.audio_buffer = np.array([], dtype=self.dtype)
-        self.full_audio_buffer = np.array([], dtype=self.dtype)  # Store complete recording
+        # Optimization: Use deque for efficient appending
+        self.audio_buffer = collections.deque()
+        self.full_audio_buffer = []  # Store complete recording as list of chunks
         self.last_speech_time = time.time()
         self.transcribed_segments = []
         self.time_offset = 0.0
@@ -52,7 +54,11 @@ class RealtimeTranscriber:
             logger.info(f"Loading realtime model: {self.model_size}...")
             # Use int8 for speed
             self.model = WhisperModel(self.model_size, device="auto", compute_type="int8")
-            logger.info("Realtime model loaded.")
+            
+            # Optimization: Set beam size
+            self.beam_size = 1 if "distil" in self.model_size else 5
+            
+            logger.info(f"Realtime model loaded (beam_size={self.beam_size}).")
 
     def get_microphones(self) -> List[Dict[str, any]]:
         """Get list of available microphones."""
@@ -96,8 +102,8 @@ class RealtimeTranscriber:
         self.result_callback = callback
         self.audio_level_callback = audio_level_callback
         self.is_running = True
-        self.audio_buffer = np.array([], dtype=self.dtype)
-        self.full_audio_buffer = np.array([], dtype=self.dtype)  # Reset full buffer
+        self.audio_buffer = collections.deque()
+        self.full_audio_buffer = []  # Reset full buffer
         self.transcribed_segments = []
         self.time_offset = 0.0
         self.last_speech_time = time.time()
@@ -171,9 +177,9 @@ class RealtimeTranscriber:
                 try:
                     # Non-blocking get with timeout to check is_running
                     data = self.audio_queue.get(timeout=0.1)
-                    self.audio_buffer = np.concatenate((self.audio_buffer, data.flatten()))
+                    self.audio_buffer.append(data)
                     # Also store in full buffer for saving
-                    self.full_audio_buffer = np.concatenate((self.full_audio_buffer, data.flatten()))
+                    self.full_audio_buffer.append(data)
                 except queue.Empty:
                     continue
                 
@@ -189,7 +195,10 @@ class RealtimeTranscriber:
                 # 1. Silence duration exceeded AND
                 # 2. Minimum chunk duration met
                 silence_duration = current_time - self.last_speech_time
-                buffer_duration = len(self.audio_buffer) / self.sample_rate
+                
+                # Calculate buffer duration (approximate)
+                buffer_len = sum(len(c) for c in self.audio_buffer)
+                buffer_duration = buffer_len / self.sample_rate
                 
                 if (silence_duration > self.silence_duration and buffer_duration > self.min_chunk_duration) or \
                    (buffer_duration > 10.0): # Force transcribe if buffer gets too long (10s)
@@ -202,16 +211,19 @@ class RealtimeTranscriber:
 
     def _transcribe_buffer(self):
         """Transcribe the current audio buffer."""
-        if len(self.audio_buffer) == 0:
+        if not self.audio_buffer:
             return
+            
+        # Convert deque of chunks to single numpy array
+        audio_data = np.concatenate(list(self.audio_buffer))
             
         # Transcribe
         try:
             # faster-whisper accepts np.ndarray
             segments, info = self.model.transcribe(
-                self.audio_buffer,
+                audio_data,
                 language=self.language if self.language != 'auto' else None,
-                beam_size=5,
+                beam_size=self.beam_size,
                 vad_filter=True  # Use VAD to filter out silence/noise
             )
             
@@ -235,11 +247,11 @@ class RealtimeTranscriber:
                     self.result_callback(text)
             
             # Update time offset before clearing buffer
-            buffer_duration = len(self.audio_buffer) / self.sample_rate
+            buffer_duration = len(audio_data) / self.sample_rate
             self.time_offset += buffer_duration
             
             # Reset buffer
-            self.audio_buffer = np.array([], dtype=self.dtype)
+            self.audio_buffer.clear()
             
         except Exception as e:
             logger.error(f"Realtime transcription error: {e}")
@@ -257,13 +269,16 @@ class RealtimeTranscriber:
         """Save the recorded audio to WAV file"""
         import wave
         
-        if len(self.full_audio_buffer) == 0:
+        if not self.full_audio_buffer:
             logger.warning("No audio to save")
             return None
         
         try:
+            # Convert list of chunks to single numpy array
+            full_audio = np.concatenate(self.full_audio_buffer)
+            
             # Convert float32 to 16-bit PCM
-            audio_int16 = np.int16(self.full_audio_buffer * 32767)
+            audio_int16 = np.int16(full_audio * 32767)
             
             with wave.open(output_path, 'wb') as wf:
                 wf.setnchannels(self.channels)

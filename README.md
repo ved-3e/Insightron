@@ -1,29 +1,21 @@
-# 🎤 Insightron v1.3.0 - Next-Gen AI Transcriber
+# 🎤 Insightron v2.0.0 - Next-Gen AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
-Insightron is a next-generation transcription application powered by **faster-whisper** (CTranslate2), featuring a stunning dark-themed GUI, batch processing capabilities, and seamless Obsidian integration. Experience up to **4x faster transcription** with lower memory usage, all in a premium modern interface.
-
-## ✨ Key Features
-
-### 🚀 **Performance & Reliability**
-- **Optimized Processing**: Enhanced algorithms for 40% faster transcription
-
-
-**Transform audio into beautifully structured insights with lightning-fast precision.**
-
-Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring a premium CustomTkinter interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility and **comprehensive multi-language support**.
+Insightron is a next-generation transcription application powered by **faster-whisper** (CTranslate2), featuring a stunning dark-themed GUI, batch processing capabilities, and seamless Obsidian integration. Experience up to **6x faster transcription** with **Distil-Whisper** models, instant model reuse, and optimized realtime performance.
 
 ## ✨ Key Features
 
 ### 🚀 **Performance & Reliability**
 - **⚡ faster-whisper Engine**: Up to **4x faster** transcription using CTranslate2 optimization
+- **🔥 Distil-Whisper Support**: Up to **6x faster** inference with `distil-medium.en` and `distil-large-v2`
+- **🔄 Instant Model Reuse**: Zero-delay start for subsequent transcriptions
 - **🧠 Lower Memory Usage**: INT8 quantization for efficient CPU processing
 - **🎯 GPU Acceleration**: Automatic CUDA detection for maximum speed
 - **📊 Real-time Progress**: Segment-level progress updates for smooth UX
 - **💾 Smart File Operations**: Atomic writes prevent data corruption
 - **🔧 Cross-Platform**: Seamless Windows, macOS, and Linux support
-- **🔴 Realtime Transcription**: Live audio capture with automatic Obsidian note saving
+- **🔴 Realtime Transcription**: Low-latency live audio capture with automatic Obsidian note saving
 
 ### 🎨 **Modern Dark-Black Theme** ✨
 - **Pure Black Background**: Material Dark theme perfect for OLED screens
@@ -31,7 +23,7 @@ Insightron is a modern, high-performance application for transcribing audio file
   - 🔵 Bright Blue for Model selection
   - 🟣 Purple for Language selection
   - 🟢 Emerald for Formatting options
-- **Tabbed Interface**: Dedicated tabs for Single File and Batch Mode
+- **Tabbed Interface**: Dedicated tabs for Single File, Batch Mode, and Realtime
 - **Settings Persistence**: Your preferences automatically saved
 - **Compact Timestamped Logs**: Terminal-style output with `[HH:MM:SS]` timestamps
 - **Smooth Hover Effects**: Premium animations throughout the UI
@@ -40,7 +32,7 @@ Insightron is a modern, high-performance application for transcribing audio file
 - **Universal Format Support**: MP3, WAV, M4A, FLAC, MP4, OGG, AAC, WMA
 - **Smart Format Detection**: Automatic audio format recognition
 - **Quality Optimization**: Model-specific parameters for best results
-- **File Size Validation**: Automatic 500MB limit checking (increased from 25MB)
+- **File Size Validation**: Automatic 500MB limit checking
 - **Enhanced Audio Processing**: Improved librosa and soundfile integration
 
 ### 🌍 **Multi-Language Support**
@@ -67,7 +59,7 @@ Insightron is a modern, high-performance application for transcribing audio file
 ### 1. **One-Click Installation**
 
 ```bash
-# Download and setup Insightron v1.0.0
+# Download and setup Insightron
 git clone https://github.com/ved-3e/Insightron.git
 cd Insightron
 
@@ -126,145 +118,12 @@ python cli.py arabic_audio.mp3 -l ar -v
 1. **Launch**: Run `python insightron.py`
 2. **Select Tab**: Use "Single File" tab (default)
 3. **Choose Audio**: Click "📁 Choose Audio File"
-4. **Configure Settings**: Select Model, Language, and Formatting (saved automatically)
+4. **Configure Settings**: Select Model (try `distil-medium.en` for speed!), Language, and Formatting
 5. **Transcribe**: Click "⚡ Start Transcription"
 6. **Monitor**: Watch real-time progress in the status bar and timestamped log
 7. **Review**: Open output folder when complete
 
-# 🎤 Insightron v1.3.0 - Next-Gen AI Transcriber
-
-**Transform audio into beautifully structured insights with lightning-fast precision.**
-
-Insightron is a next-generation transcription application powered by **faster-whisper** (CTranslate2), featuring a stunning dark-themed GUI, batch processing capabilities, and seamless Obsidian integration. Experience up to **4x faster transcription** with lower memory usage, all in a premium modern interface.
-
-## ✨ Key Features
-
-### 🚀 **Performance & Reliability**
-- **Optimized Processing**: Enhanced algorithms for 40% faster transcription
-
-
-**Transform audio into beautifully structured insights with lightning-fast precision.**
-
-Insightron is a modern, high-performance application for transcribing audio files using OpenAI's Whisper AI, featuring a premium CustomTkinter interface and seamless Obsidian integration. Built for speed, reliability, and user experience with enhanced cross-platform compatibility and **comprehensive multi-language support**.
-
-## ✨ Key Features
-
-### 🚀 **Performance & Reliability**
-- **⚡ faster-whisper Engine**: Up to **4x faster** transcription using CTranslate2 optimization
-- **🧠 Lower Memory Usage**: INT8 quantization for efficient CPU processing
-- **🎯 GPU Acceleration**: Automatic CUDA detection for maximum speed
-- **📊 Real-time Progress**: Segment-level progress updates for smooth UX
-- **💾 Smart File Operations**: Atomic writes prevent data corruption
-- **🔧 Cross-Platform**: Seamless Windows, macOS, and Linux support
-- **� Realtime Transcription**: Live audio capture with automatic Obsidian note saving
-
-### 🎨 **Modern Dark-Black Theme** ✨
-- **Pure Black Background**: Material Dark theme perfect for OLED screens
-- **Premium Color Palette**: 
-  - 🔵 Bright Blue for Model selection
-  - 🟣 Purple for Language selection
-  - 🟢 Emerald for Formatting options
-- **Tabbed Interface**: Dedicated tabs for Single File and Batch Mode
-- **Settings Persistence**: Your preferences automatically saved
-- **Compact Timestamped Logs**: Terminal-style output with `[HH:MM:SS]` timestamps
-- **Smooth Hover Effects**: Premium animations throughout the UI
-
-### 🎵 **Audio Excellence**
-- **Universal Format Support**: MP3, WAV, M4A, FLAC, MP4, OGG, AAC, WMA
-- **Smart Format Detection**: Automatic audio format recognition
-- **Quality Optimization**: Model-specific parameters for best results
-- **File Size Validation**: Automatic 500MB limit checking (increased from 25MB)
-- **Enhanced Audio Processing**: Improved librosa and soundfile integration
-
-### 🌍 **Multi-Language Support**
-- **100+ Languages**: Support for all Whisper-supported languages including English, Spanish, French, German, Chinese, Japanese, Arabic, Hindi, and many more
-- **Auto-Detection**: Intelligent language detection for multilingual content
-- **Manual Selection**: Choose specific languages for optimal accuracy
-- **UTF-8 Encoding**: Perfect support for non-Latin scripts and special characters
-- **Language-Aware Processing**: Optimized transcription parameters for each language
-
-### 📝 **Intelligent Text Processing**
-- **Smart Formatting**: Auto-detects paragraph breaks and sentence structure
-- **Filler Word Removal**: Cleans up "um", "uh", and repetitive phrases
-- **Transcription Fixes**: Corrects common Whisper AI errors
-- **Multiple Styles**: Auto, paragraph, and minimal formatting options
-
-### 🔗 **Obsidian Integration**
-- **Seamless Workflow**: Direct save to your Obsidian vault
-- **Rich Metadata**: Duration, file size, language, processing time
-- **Timestamp Support**: Optional segment-by-segment timestamps
-- **Tag System**: Automatic tagging for easy organization
-
-## 🚀 Quick Start
-
-### 1. **One-Click Installation**
-
-```bash
-# Download and setup Insightron v1.0.0
-git clone https://github.com/ved-3e/Insightron.git
-cd Insightron
-
-# Automated setup (recommended)
-python setup.py
-
-# Windows users - use the enhanced installer
-install_windows.bat
-
-# Cross-platform installer
-python install_dependencies.py
-
-# Or manual installation
-pip install -r requirements.txt
-```
-
-### 2. **Configuration**
-
-Update `config.py` with your Obsidian vault path:
-
-```python
-# Path to your Obsidian Vault
-OBSIDIAN_VAULT_PATH = Path(r"D:\2. Areas\IdeaVerse\Areas")
-
-# Folder inside vault for insights
-TRANSCRIPTION_FOLDER = OBSIDIAN_VAULT_PATH / "Insights"
-```
-
-### 3. **Launch Insightron**
-
-**🎨 GUI Mode (Recommended):**
-```bash
-python insightron.py
-```
-
-**⚡ Command Line Mode:**
-```bash
-# Basic transcription with auto-detection
-python cli.py audio.mp3
-
-# Advanced options with language selection
-python cli.py audio.wav -m large -v -f paragraphs -l es
-
-# Multi-language examples
-python cli.py spanish_audio.mp3 -l es -m medium
-python cli.py french_audio.wav -l fr -f auto
-python cli.py chinese_audio.m4a -l zh -m large
-python cli.py arabic_audio.mp3 -l ar -v
-```
-
-## 📖 Usage Guide
-
-### **GUI Interface**
-
-#### **Single File Mode**
-1. **Launch**: Run `python insightron.py`
-2. **Select Tab**: Use "Single File" tab (default)
-3. **Choose Audio**: Click "📁 Choose Audio File"
-4. **Configure Settings**: Select Model, Language, and Formatting (saved automatically)
-5. **Transcribe**: Click "⚡ Start Transcription"
-6. **Monitor**: Watch real-time progress in the status bar and timestamped log
-7. **Review**: Open output folder when complete
-
-#### **Batch Mode** �📦
+#### **Batch Mode** 📦
 1. **Switch Tab**: Click "Batch Mode" tab
 2. **Select Files**: 
    - Click "📄 Choose Files" to select multiple audio files
@@ -307,7 +166,7 @@ python cli.py audio.mp3 -q
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-m, --model` | Whisper model size (tiny, base, small, medium, large) | medium |
+| `-m, --model` | Whisper model size (tiny, base, small, medium, large, distil-medium.en, distil-large-v2) | medium |
 | `-f, --format` | Text formatting (auto, paragraphs, minimal) | auto |
 | `-l, --language` | Language code (en, es, fr, de, zh, ja, ar, etc.) or 'auto' | auto |
 | `-v, --verbose` | Enable detailed progress output | False |
@@ -331,7 +190,7 @@ insightron/
 ├── troubleshoot.py         # 🔍 Enhanced diagnostic and repair tool
 ├── install_dependencies.py # 📦 Cross-platform dependency installer
 ├── install_windows.bat     # 📦 Windows-optimized installer
-├── requirements.txt        # 📦 Full dependencies (v1.2.0)
+├── requirements.txt        # 📦 Full dependencies (v2.0.0)
 ├── requirements-minimal.txt # 📦 Minimal dependencies
 ├── test_formatting.py      # 🧪 Text formatting tests
 ├── test_macos_gui.py       # 🧪 GUI interface tests
@@ -397,7 +256,9 @@ python cli.py hindi_interview.wav -l hi -m medium
 | **base** | ~74 MB | ⚡⚡ | ⭐⭐⭐ | Balanced performance |
 | **small** | ~244 MB | ⚡ | ⭐⭐⭐⭐ | High quality, good speed |
 | **medium** | ~769 MB | ⚡ | ⭐⭐⭐⭐⭐ | **Recommended** |
-| **large** | ~1550 MB | ⚡ | ⭐⭐⭐⭐⭐ | Maximum accuracy |
+| **large-v2** | ~1550 MB | ⚡ | ⭐⭐⭐⭐⭐ | Maximum accuracy |
+| **distil-medium.en** | ~394 MB | ⚡⚡⚡⚡ | ⭐⭐⭐⭐⭐ | **Best Speed/Accuracy** (English only) |
+| **distil-large-v2** | ~756 MB | ⚡⚡⚡ | ⭐⭐⭐⭐⭐ | High accuracy, faster than large |
 
 ### **Performance Tips**
 
@@ -475,7 +336,7 @@ pip install -r requirements-minimal.txt
 - **Corrupted file**: Try a different audio file or run diagnostics
 
 #### **Performance Issues**
-- **Slow transcription**: Use smaller models (tiny, base, small)
+- **Slow transcription**: Use `distil-medium.en` or smaller models (tiny, base, small)
 - **Memory errors**: Close other applications, use tiny model
 - **GPU not detected**: Install CUDA toolkit for GPU acceleration
 
@@ -517,6 +378,7 @@ python -m pytest
 - **Small Model**: ~1x real-time speed
 - **Medium Model**: ~0.8x real-time speed
 - **Large Model**: ~0.5x real-time speed
+- **Distil-Medium**: ~5x real-time speed (New!)
 
 ## 🎨 Customization
 
@@ -554,7 +416,8 @@ self.colors = {
 ## 📈 Performance Optimization
 
 ### **Speed Improvements**
-- Use `tiny` or `base` models for faster transcription
+- Use `distil-medium.en` for lightning-fast English transcription
+- Use `tiny` or `base` models for faster multi-language transcription
 - Enable GPU acceleration with CUDA
 - Close unnecessary applications during transcription
 - Use SSD storage for better I/O performance
@@ -619,9 +482,18 @@ black *.py
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
 
-**Insightron v1.3.0** - Real-time Transcription & Enhanced UI
+**Insightron v2.0.0** - Speed, Efficiency, and Intelligence
 
-## 🆕 What's New in v1.3.0
+## 🆕 What's New in v2.0.0
+
+### **🚀 Performance Revolution**
+- ✅ **Instant Model Reuse**: Implemented smart caching to eliminate model loading delays (10-20s saved per file)
+- ✅ **Distil-Whisper Support**: Added `distil-medium.en` and `distil-large-v2` for **6x faster** transcription
+- ✅ **Optimized Realtime**: New `deque`-based buffering for lower latency and CPU usage
+- ✅ **Enhanced Batch Mode**: Shared model instance across batch files for maximum throughput
+- ✅ **Smart Beam Search**: Dynamic beam size adjustment (1 for speed, 5 for accuracy)
+
+### **Previous Updates (v1.3.0)**
 
 ### **🔴 Realtime Transcription**
 - ✅ **Live Audio Capture**: Record and transcribe microphone input in real-time

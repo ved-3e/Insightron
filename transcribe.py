@@ -33,18 +33,24 @@ class AudioTranscriber:
         Initialize the transcriber with the specified Whisper model.
         
         Args:
-            model_size: Size of the model (tiny, base, small, medium, large-v2)
+            model_size: Size of the model (tiny, base, small, medium, large-v2, distil-medium.en, etc.)
             language: Default language code
         """
         logger.info(f"Loading faster-whisper model: {model_size}...")
         try:
-            # Use INT8 quantization for CPU speedup, or float16 for GPU if available
+            # Use INT8 quantization for CPU speedup
+            compute_type = "int8"
+            
             # device="auto" automatically selects CUDA if available
-            self.model = WhisperModel(model_size, device="auto", compute_type="int8")
+            self.model = WhisperModel(model_size, device="auto", compute_type=compute_type)
             self.model_size = model_size
             self.supported_formats = {'.mp3', '.wav', '.m4a', '.flac', '.mp4', '.ogg', '.aac', '.wma'}
             self.supported_languages = SUPPORTED_LANGUAGES
             self.language = language
+            
+            # Optimization: Set beam size based on model type
+            self.beam_size = 1 if "distil" in model_size else 5
+            
             logger.info(f"Successfully loaded {model_size} model (faster-whisper)")
         except Exception as e:
             logger.error(f"Failed to load faster-whisper model: {e}")
@@ -148,7 +154,7 @@ class AudioTranscriber:
             # faster-whisper returns a generator
             segments, info = self.model.transcribe(
                 str(audio_path),
-                beam_size=5,
+                beam_size=self.beam_size,
                 language=transcription_language,
                 task="transcribe"
             )

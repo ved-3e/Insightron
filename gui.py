@@ -7,7 +7,7 @@ import os
 import logging
 from typing import Optional, List
 from datetime import datetime
-from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER, RECORDINGS_FOLDER
+from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER, RECORDINGS_FOLDER, APP_VERSION
 from settings_manager import SettingsManager
 from realtime_transcriber import RealtimeTranscriber
 from utils import create_realtime_note
@@ -15,6 +15,33 @@ from utils import create_realtime_note
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class ModelManager:
+    """
+    Manages the Whisper model instance to prevent reloading.
+    Singleton pattern to ensure only one model is loaded at a time.
+    """
+    _instance = None
+    _model = None
+    _current_model_size = None
+    
+    @classmethod
+    def get_transcriber(cls, model_size: str, language: str = DEFAULT_LANGUAGE):
+        from transcribe import AudioTranscriber
+        
+        # If model is loaded and size matches, reuse it
+        if cls._model and cls._current_model_size == model_size:
+            logger.info(f"Reusing loaded model: {model_size}")
+            # Update language if needed
+            if language != cls._model.language:
+                cls._model.language = language
+            return cls._model
+            
+        # Otherwise load new model
+        logger.info(f"Loading new model: {model_size} (was {cls._current_model_size})")
+        cls._model = AudioTranscriber(model_size, language)
+        cls._current_model_size = model_size
+        return cls._model
 
 class InsightronGUI:
     """
@@ -43,7 +70,7 @@ class InsightronGUI:
     def __init__(self, root: ctk.CTk):
         """Initialize the Premium Insightron GUI"""
         self.root = root
-        self.root.title("Insightron")
+        self.root.title(f"Insightron v{APP_VERSION}")
         self.root.geometry("1000x850")
         
         # Initialize Settings Manager
@@ -289,7 +316,6 @@ class InsightronGUI:
         )
         self.batch_transcribe_btn.pack(fill="x", padx=20, pady=(10, 20))
 
-
     def setup_realtime_tab(self):
         """Realtime Transcription Tab"""
         rt_card = self.create_card(self.tab_realtime)
@@ -514,10 +540,11 @@ class InsightronGUI:
         self.model_var = ctk.StringVar(value="medium")
         self.model_var.trace_add("write", self.save_current_settings)
         
+        # Updated model list to include distil models
         ctk.CTkOptionMenu(
             model_frame, 
             variable=self.model_var,
-            values=["tiny", "base", "small", "medium", "large-v2"],
+            values=["tiny", "base", "small", "medium", "large-v2", "distil-medium.en", "distil-large-v2"],
             font=('Segoe UI', 14, 'bold'),
             dropdown_font=('Segoe UI', 13),
             corner_radius=8,
@@ -750,11 +777,12 @@ class InsightronGUI:
     def transcribe_audio(self):
         """Single file worker"""
         try:
-            from transcribe import AudioTranscriber
             self.update_progress("🔄 Loading model...")
-            
-            transcriber = AudioTranscriber(self.model_var.get())
+            model_size = self.model_var.get()
             lang = self.language_var.get().split(' - ')[0]
+            
+            # Use ModelManager to get transcriber
+            transcriber = ModelManager.get_transcriber(model_size, lang)
             
             def callback(msg):
                 self.update_progress(f"🎙️ {msg}")
@@ -781,7 +809,11 @@ class InsightronGUI:
             from batch_processor import batch_transcribe_files
             
             self.update_progress("🔄 Starting batch...")
+            model_size = self.model_var.get()
             lang = self.language_var.get().split(' - ')[0]
+            
+            # Get shared transcriber instance
+            transcriber = ModelManager.get_transcriber(model_size, lang)
             
             def callback(completed, total, filename):
                 self.update_progress(f"📦 [{completed}/{total}] {filename}")
@@ -789,9 +821,10 @@ class InsightronGUI:
             
             results = batch_transcribe_files(
                 self.selected_batch_files,
-                model_size=self.model_var.get(),
+                model_size=model_size,
                 language=lang,
-                progress_callback=callback
+                progress_callback=callback,
+                transcriber=transcriber  # Pass the shared instance
             )
             
             self.update_progress("✅ Batch Complete!")

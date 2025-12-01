@@ -34,8 +34,15 @@ WHISPER_MODELS = {
     'base': {'size': '~74M params', 'speed': 'Fast', 'accuracy': 'Better'},
     'small': {'size': '~244M params', 'speed': 'Moderate', 'accuracy': 'Good'},
     'medium': {'size': '~769M params', 'speed': 'Slower', 'accuracy': 'Very Good'},
-    'large': {'size': '~1550M params', 'speed': 'Slowest', 'accuracy': 'Best'}
+    'large-v2': {'size': '~1550M params', 'speed': 'Slowest', 'accuracy': 'Best'},
+    'distil-medium.en': {'size': '~394M params', 'speed': 'Very Fast', 'accuracy': 'Very Good'},
+    'distil-large-v2': {'size': '~756M params', 'speed': 'Fast', 'accuracy': 'Best'}
 }
+
+# Optimization Settings
+ENABLE_INT8_QUANTIZATION = True  # Significant speedup on CPU
+REALTIME_BUFFER_SECONDS = 30     # Max buffer for realtime
+REALTIME_SILENCE_THRESHOLD = 0.015 # Slightly increased for better noise rejection
 
 # Formatting styles
 FORMATTING_STYLES = {
@@ -46,7 +53,7 @@ FORMATTING_STYLES = {
 
 # Application metadata
 APP_NAME = "Insightron"
-APP_VERSION = "1.3.0"
+APP_VERSION = "2.0.0"
 APP_DESCRIPTION = "AI-powered audio transcription with Whisper - Multi-language support"
 
 # Maximum file size (in MB)
@@ -148,7 +155,7 @@ ENABLE_MANUAL_LANGUAGE_SELECTION = True
 ENSURE_UTF8_ENCODING = True
 OUTPUT_ENCODING = "utf-8"
 
-print(f"✓ Insightron Config Loaded v{APP_VERSION}")
+print(f"[OK] Insightron Config Loaded v{APP_VERSION}")
 print(f"  - Model: {WHISPER_MODEL}")
 print(f"  - Output: {TRANSCRIPTION_FOLDER}")
 print(f"  - Languages: {len(SUPPORTED_LANGUAGES)} supported")

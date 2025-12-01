@@ -40,7 +40,8 @@ class BatchTranscriber:
         model_size: str = WHISPER_MODEL,
         language: str = DEFAULT_LANGUAGE,
         max_workers: Optional[int] = None,
-        use_multiprocessing: bool = False
+        use_multiprocessing: bool = False,
+        transcriber: Optional[AudioTranscriber] = None
     ):
         self.model_size = model_size
         self.language = language
@@ -55,13 +56,13 @@ class BatchTranscriber:
             
         # Initialize transcriber ONLY if using threads (shared instance)
         # faster-whisper is thread-safe
-        self.transcriber = None
-        if not self.use_multiprocessing:
+        self.transcriber = transcriber
+        if not self.use_multiprocessing and self.transcriber is None:
             logger.info("Initializing shared model for thread pool...")
             self.transcriber = AudioTranscriber(model_size, language)
         
         logger.info(f"BatchTranscriber initialized: model={model_size}, workers={self.max_workers}, "
-                   f"multiprocessing={use_multiprocessing}")
+                   f"multiprocessing={use_multiprocessing}, shared_model={self.transcriber is not None}")
     
     def transcribe_batch(
         self,
@@ -156,14 +157,16 @@ def batch_transcribe_files(
     language: str = DEFAULT_LANGUAGE,
     max_workers: Optional[int] = None,
     use_multiprocessing: bool = False,
-    progress_callback: Optional[Callable[[int, int, str], None]] = None
+    progress_callback: Optional[Callable[[int, int, str], None]] = None,
+    transcriber: Optional[AudioTranscriber] = None
 ) -> Dict[str, Any]:
     """Convenience function for batch transcription."""
     batch_transcriber = BatchTranscriber(
         model_size=model_size,
         language=language,
         max_workers=max_workers,
-        use_multiprocessing=use_multiprocessing
+        use_multiprocessing=use_multiprocessing,
+        transcriber=transcriber
     )
     
     return batch_transcriber.transcribe_batch(
