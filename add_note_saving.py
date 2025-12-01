@@ -74,7 +74,6 @@ new_stop_recording = '''    def stop_recording(self):
                             formatting_style=self.formatting_var.get(),
                             duration_seconds=duration_seconds,
                             segments=data['segments'],
-                            folder_path=str(TRANSCRIPTION_FOLDER)
                         )
                         
                         note_path = TRANSCRIPTION_FOLDER / f\"{note_filename}.md\"
