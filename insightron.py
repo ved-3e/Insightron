@@ -29,10 +29,10 @@ if sys.platform == "win32":
 sys.path.append(str(Path(__file__).parent))
 
 try:
-    from gui import InsightronGUI
+    from gui.gui import InsightronGUI
     import customtkinter as ctk
-    from batch_processor import batch_transcribe_files
-    from config import WHISPER_MODEL, DEFAULT_LANGUAGE
+    from transcription.batch_processor import batch_transcribe_files
+    from core.config import WHISPER_MODEL, DEFAULT_LANGUAGE
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please install the required dependencies:")
@@ -70,7 +70,7 @@ def check_dependencies():
 
 def check_obsidian_path():
     """Check if Obsidian path is configured correctly"""
-    from config import OBSIDIAN_VAULT_PATH, TRANSCRIPTION_FOLDER
+    from core.config import OBSIDIAN_VAULT_PATH, TRANSCRIPTION_FOLDER
     
     if not OBSIDIAN_VAULT_PATH.exists():
         print(f"⚠️  Warning: Obsidian vault path doesn't exist: {OBSIDIAN_VAULT_PATH}")

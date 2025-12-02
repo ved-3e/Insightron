@@ -1,7 +1,7 @@
 import logging
 import torch
 from faster_whisper import WhisperModel
-from config import get_config_manager
+from core.config import get_config_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

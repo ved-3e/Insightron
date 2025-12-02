@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from model_manager import ModelManager
+from core.model_manager import ModelManager
 
 class TestModelManager(unittest.TestCase):
     def setUp(self):

@@ -5,105 +5,92 @@
     "python_version": "3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]",
     "platform": "win32"
   },
-  "timestamp": "2025-12-02 09:31:53",
+  "timestamp": "2025-12-02 19:44:56",
   "text_formatter": {
     "Small text": {
       "text_length": 36,
-      "clean_time": 8.20159912109375e-05,
-      "format_time": 0.0007090568542480469,
-      "custom_time": 5.125999450683594e-05,
-      "total_time": 0.0008423328399658203,
-      "chars_per_second": 42738.45004245683
+      "clean_time": 5.14984130859375e-05,
+      "format_time": 0.0007100105285644531,
+      "custom_time": 7.62939453125e-05,
+      "total_time": 0.0008378028869628906,
+      "chars_per_second": 42969.5344336938
     },
     "Medium text": {
       "text_length": 1850,
-      "clean_time": 0.0008914470672607422,
-      "format_time": 0.001653909683227539,
-      "custom_time": 0.015016317367553711,
-      "total_time": 0.017561674118041992,
-      "chars_per_second": 105343.03208026175
+      "clean_time": 0.0013473033905029297,
+      "format_time": 0.003055572509765625,
+      "custom_time": 0.021436691284179688,
+      "total_time": 0.025839567184448242,
+      "chars_per_second": 71595.62645900036
     },
     "Large text": {
       "text_length": 18500,
-      "clean_time": 0.007799386978149414,
-      "format_time": 0.013239145278930664,
-      "custom_time": 1.2751097679138184,
-      "total_time": 1.2961483001708984,
-      "chars_per_second": 14273.058104200543
+      "clean_time": 0.011991262435913086,
+      "format_time": 0.02317667007446289,
+      "custom_time": 1.3980231285095215,
+      "total_time": 1.4331910610198975,
+      "chars_per_second": 12908.258014695473
     },
     "Very large text": {
       "text_length": 74000,
-      "clean_time": 0.03342390060424805,
-      "format_time": 0.049215078353881836,
-      "custom_time": 22.663400173187256,
-      "total_time": 22.746039152145386,
-      "chars_per_second": 3253.313665074756
+      "clean_time": 0.03487801551818848,
+      "format_time": 0.05495262145996094,
+      "custom_time": 21.337708950042725,
+      "total_time": 21.427539587020874,
+      "chars_per_second": 3453.499628339196
     }
   },
   "markdown_creation": {
     "Small transcript": {
       "text_length": 27,
       "markdown_length": 628,
-      "creation_time": 0.0005252361297607422,
-      "chars_per_second": 51405.45074897866
+      "creation_time": 0.0004470348358154297,
+      "chars_per_second": 60397.9776
     },
     "Medium transcript": {
       "text_length": 3600,
       "markdown_length": 7805,
-      "creation_time": 0.00036835670471191406,
-      "chars_per_second": 9773135.533980582
+      "creation_time": 0.00014495849609375,
+      "chars_per_second": 24834694.736842107
     },
     "Large transcript": {
       "text_length": 48000,
       "markdown_length": 96905,
-      "creation_time": 0.0012657642364501953,
-      "chars_per_second": 37921754.00263703
+      "creation_time": 0.0009431838989257812,
+      "chars_per_second": 50891453.99393327
     },
     "Very large transcript": {
       "text_length": 265000,
       "markdown_length": 532238,
-      "creation_time": 0.006659746170043945,
-      "chars_per_second": 39791306.34017112
+      "creation_time": 0.008111000061035156,
+      "chars_per_second": 32671680.188124634
     }
   },
   "memory_usage": {
-    "initial_memory_mb": 216.94921875,
-    "formatter_memory_mb": 0.7265625,
-    "markdown_memory_mb": 0.1875,
-    "total_memory_mb": 0.9140625
+    "initial_memory_mb": 220.1484375,
+    "formatter_memory_mb": 0.37890625,
+    "markdown_memory_mb": 0.1953125,
+    "total_memory_mb": 0.57421875
   },
-  "concurrent_operations": {
-    "1_threads": {
-      "total_time": 0.004248380661010742,
-      "worker_count": 1,
-      "avg_processing_time": 0.003296375274658203,
-      "throughput": 235.3838038049273,
-      "executor_type": "ThreadPoolExecutor"
-    },
-    "2_threads": {
-      "total_time": 0.009207010269165039,
-      "worker_count": 2,
-      "avg_processing_time": 0.0036202669143676758,
-      "throughput": 217.2257813916151,
-      "executor_type": "ThreadPoolExecutor"
-    },
-    "4_threads": {
-      "total_time": 0.01591014862060547,
-      "worker_count": 4,
-      "avg_processing_time": 0.0036382079124450684,
-      "throughput": 251.41185638074685,
-      "executor_type": "ThreadPoolExecutor"
-    },
-    "8_threads": {
-      "total_time": 0.031129837036132812,
-      "worker_count": 8,
-      "avg_processing_time": 0.003686368465423584,
-      "throughput": 256.9881747441946,
-      "executor_type": "ThreadPoolExecutor"
-    },
-    "4_processes": {
-      "error": "Can't get local object 'PerformanceBenchmark.benchmark_concurrent_operations.<locals>.process_text_worker'",
-      "executor_type": "ProcessPoolExecutor"
-    }
+  "single_file": {
+    "model": "medium",
+    "load_time_seconds": 3.6422903537750244,
+    "cached_load_time_seconds": 4.0531158447265625e-06,
+    "transcription_time_seconds": 6.583103895187378,
+    "audio_duration_seconds": 10.0,
+    "real_time_factor": 0.6583103895187378
+  },
+  "batch_processing": {
+    "file_count": 4,
+    "total_time_seconds": 292.0569021701813,
+    "avg_time_per_file": 73.01422554254532,
+    "successful": 4,
+    "failed": 0,
+    "throughput_files_per_min": 0.8217576719352869
+  },
+  "realtime_simulation": {
+    "buffer_write_60s_time": 0.0966801643371582,
+    "buffer_read_snapshot_time": 0.022123098373413086,
+    "latency_overhead_ms": 23.734434445699055
   }
 }

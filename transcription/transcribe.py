@@ -8,8 +8,8 @@ import librosa
 import soundfile
 
 
-from utils import create_markdown
-from config import (
+from core.utils import create_markdown
+from core.config import (
     WHISPER_MODEL, 
     TRANSCRIPTION_FOLDER, 
     SUPPORTED_LANGUAGES, 
@@ -36,7 +36,7 @@ class AudioTranscriber:
             model_size: Size of the model (managed by ModelManager, argument kept for compatibility but logged if different)
             language: Default language code
         """
-        from model_manager import ModelManager
+        from core.model_manager import ModelManager
         
         self.model_manager = ModelManager()
         

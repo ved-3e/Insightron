@@ -167,30 +167,6 @@ python cli.py audio.mp3 -q
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-m, --model` | Whisper model size (tiny, base, small, medium, large, distil-medium.en, distil-large-v2) | medium |
-| `-f, --format` | Text formatting (auto, paragraphs, minimal) | auto |
-| `-l, --language` | Language code (en, es, fr, de, zh, ja, ar, etc.) or 'auto' | auto |
-| `-v, --verbose` | Enable detailed progress output | False |
-| `-o, --output` | Custom output file path | Auto-generated |
-| `-q, --quiet` | Suppress all output except errors | False |
-
-## 📁 Project Structure
-
-```
-insightron/
-├── insightron.py                 # 🚀 Main application entry point
-├── gui.py                  # 🎨 Modern CustomTkinter GUI
-├── cli.py                  # ⚡ Command line interface
-├── batch_processor.py      # 📦 Batch processing for multiple files
-├── realtime_transcriber.py # 🔴 Real-time audio transcription engine
-├── transcribe.py           # 🧠 Core transcription engine
-├── text_formatter.py       # 📝 Intelligent text processing
-├── utils.py                # 🔧 Utility functions
-├── config.py               # ⚙️ Configuration settings
-├── setup.py                # 🛠️ Automated setup script
-├── troubleshoot.py         # 🔍 Enhanced diagnostic and repair tool
-├── install_dependencies.py # 📦 Cross-platform dependency installer
-├── install_windows.bat     # 📦 Windows-optimized installer
-├── requirements.txt        # 📦 Full dependencies (v2.0.0)
 ├── requirements-minimal.txt # 📦 Minimal dependencies
 ├── test_formatting.py      # 🧪 Text formatting tests
 ├── test_macos_gui.py       # 🧪 GUI interface tests
@@ -350,51 +326,6 @@ pip install -r requirements-minimal.txt
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
 | **Python** | 3.8+ | 3.9+ |
-| **RAM** | 4GB | 8GB+ |
-| **Storage** | 2GB | 5GB+ |
-| **CPU** | Dual-core | Quad-core+ |
-| **OS** | Windows 10, macOS 10.14, Linux | Latest versions |
-
-## 🧪 Testing
-
-### **Run Tests**
-```bash
-# Test text formatting
-python test_formatting.py
-
-# Test GUI interface
-python test_macos_gui.py
-
-# Enhanced diagnostics
-python troubleshoot.py
-
-# Test full functionality
-python -m pytest
-```
-
-### **Performance Benchmarks**
-- **Tiny Model**: ~2x real-time speed
-- **Base Model**: ~1.5x real-time speed  
-- **Small Model**: ~1x real-time speed
-- **Medium Model**: ~0.8x real-time speed
-- **Large Model**: ~0.5x real-time speed
-- **Distil-Medium**: ~5x real-time speed (New!)
-
-## 🎨 Customization
-
-### **Custom Text Formatting**
-Edit `text_formatter.py` to add your own formatting rules:
-
-```python
-# Add custom transcription fixes
-self._transcription_fixes.append(
-    (re.compile(r'\byour_pattern\b', re.IGNORECASE), 'Your Replacement')
-)
-```
-
-### **Custom Output Templates**
-Modify `utils.py` to change the markdown template:
-
 ```python
 def create_markdown(filename, text, date, duration, model, ...):
     # Your custom template here

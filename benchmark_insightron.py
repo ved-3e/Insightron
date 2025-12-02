@@ -11,15 +11,21 @@ import os
 from pathlib import Path
 import tempfile
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import json
+import shutil
+import numpy as np
+import argparse
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from transcribe import AudioTranscriber
-from text_formatter import TextFormatter, format_transcript
-from utils import create_markdown
+from transcription.transcribe import AudioTranscriber
+from transcription.text_formatter import TextFormatter, format_transcript
+from core.utils import create_markdown
+from core.model_manager import ModelManager
+from transcription.batch_processor import BatchTranscriber
+from realtime.realtime_transcriber import RealtimeTranscriber
 
 # Configure logging
 logging.basicConfig(level=logging.WARNING)
@@ -27,9 +33,17 @@ logging.basicConfig(level=logging.WARNING)
 class PerformanceBenchmark:
     """Comprehensive performance benchmarking for Insightron components."""
     
-    def __init__(self):
+    def __init__(self, baseline_file: str = None):
         self.results = {}
         self.system_info = self._get_system_info()
+        self.baseline = self._load_baseline(baseline_file) if baseline_file else None
+        self.test_audio_path = Path("benchmark_test.wav")
+        
+        # Ensure test audio exists
+        if not self.test_audio_path.exists():
+            print("⚠️ Test audio not found. Generating...")
+            import generate_test_audio
+            generate_test_audio.generate_sine_wave(str(self.test_audio_path))
     
     def _get_system_info(self) -> Dict:
         """Get system information for context."""
@@ -39,6 +53,15 @@ class PerformanceBenchmark:
             'python_version': sys.version,
             'platform': sys.platform
         }
+
+    def _load_baseline(self, filename: str) -> Dict:
+        """Load baseline results for comparison."""
+        try:
+            with open(filename, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ Could not load baseline file {filename}: {e}")
+            return None
     
     def benchmark_text_formatter(self) -> Dict:
         """Benchmark text formatter performance."""
@@ -80,7 +103,7 @@ class PerformanceBenchmark:
                 'format_time': format_time,
                 'custom_time': custom_time,
                 'total_time': clean_time + format_time + custom_time,
-                'chars_per_second': len(text) / (clean_time + format_time + custom_time)
+                'chars_per_second': len(text) / (clean_time + format_time + custom_time) if (clean_time + format_time + custom_time) > 0 else 0
             }
         
         return results
@@ -119,7 +142,7 @@ class PerformanceBenchmark:
                 'text_length': len(text),
                 'markdown_length': len(markdown),
                 'creation_time': end_time - start_time,
-                'chars_per_second': len(text) / (end_time - start_time)
+                'chars_per_second': len(text) / (end_time - start_time) if (end_time - start_time) > 0 else 0
             }
         
         return results
@@ -163,76 +186,121 @@ class PerformanceBenchmark:
             'markdown_memory_mb': markdown_memory,
             'total_memory_mb': memory_after - initial_memory
         }
-    
-    def benchmark_concurrent_operations(self) -> Dict:
-        """Benchmark concurrent text processing operations with improved thread pool."""
-        print("🧪 Benchmarking Concurrent Operations...")
+
+    def benchmark_single_file_transcription(self) -> Dict:
+        """Benchmark single-file transcription performance."""
+        print("🧪 Benchmarking Single-File Transcription...")
         
-        from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-        import threading
+        if not self.test_audio_path.exists():
+            print("  Skipping: Test audio not found")
+            return {}
+
+        # Measure model load time
+        model_manager = ModelManager()
+        model_name = model_manager.model_size
+        print(f"  Loading model '{model_name}'...")
         
-        formatter = TextFormatter()
-        test_text = "This is a test sentence for concurrent processing. " * 100
-        
-        def process_text_worker(text_id):
-            start_time = time.time()
-            result = formatter.format_text(test_text)
-            end_time = time.time()
-            return {
-                'thread_id': text_id,
-                'processing_time': end_time - start_time,
-                'result_length': len(result)
-            }
-        
-        # Test with different numbers of concurrent workers
-        worker_counts = [1, 2, 4, 8]
-        results = {}
-        
-        for worker_count in worker_counts:
-            print(f"  Testing with {worker_count} workers (ThreadPoolExecutor)...")
-            
-            start_time = time.time()
-            
-            with ThreadPoolExecutor(max_workers=worker_count) as executor:
-                futures = [executor.submit(process_text_worker, i) for i in range(worker_count)]
-                thread_results = [f.result() for f in futures]
-            
-            end_time = time.time()
-            
-            results[f'{worker_count}_threads'] = {
-                'total_time': end_time - start_time,
-                'worker_count': worker_count,
-                'avg_processing_time': sum(r['processing_time'] for r in thread_results) / len(thread_results),
-                'throughput': worker_count / (end_time - start_time),
-                'executor_type': 'ThreadPoolExecutor'
-            }
-        
-        # Test with ProcessPoolExecutor for comparison
-        print(f"  Testing with 4 workers (ProcessPoolExecutor)...")
         start_time = time.time()
+        # Ensure reload for benchmark
+        model_manager._model = None 
+        model = model_manager.load_model()
+        load_time = time.time() - start_time
         
-        try:
-            with ProcessPoolExecutor(max_workers=4) as executor:
-                futures = [executor.submit(process_text_worker, i) for i in range(4)]
-                process_results = [f.result() for f in futures]
-            
-            end_time = time.time()
-            
-            results['4_processes'] = {
-                'total_time': end_time - start_time,
-                'worker_count': 4,
-                'avg_processing_time': sum(r['processing_time'] for r in process_results) / len(process_results),
-                'throughput': 4 / (end_time - start_time),
-                'executor_type': 'ProcessPoolExecutor'
-            }
-        except Exception as e:
-            print(f"    ProcessPoolExecutor test failed: {e}")
-            results['4_processes'] = {
-                'error': str(e),
-                'executor_type': 'ProcessPoolExecutor'
-            }
+        # Measure transcription time
+        print(f"  Transcribing {self.test_audio_path}...")
+        start_time = time.time()
+        # transcribe uses load_model internally, so it will use the one we just loaded
+        result = model_manager.transcribe(str(self.test_audio_path))
+        transcribe_time = time.time() - start_time
         
-        return results
+        # Measure cached load time (should be instant)
+        print("  Testing cached model access...")
+        start_time = time.time()
+        _ = model_manager.load_model()
+        cached_load_time = time.time() - start_time
+        
+        return {
+            'model': model_name,
+            'load_time_seconds': load_time,
+            'cached_load_time_seconds': cached_load_time,
+            'transcription_time_seconds': transcribe_time,
+            'audio_duration_seconds': 10.0, # Known from generation
+            'real_time_factor': transcribe_time / 10.0
+        }
+
+    def benchmark_batch_processing(self) -> Dict:
+        """Benchmark batch processing performance."""
+        print("🧪 Benchmarking Batch Processing...")
+        
+        if not self.test_audio_path.exists():
+            print("  Skipping: Test audio not found")
+            return {}
+            
+        # Create temporary directory with multiple copies of test audio
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            num_files = 4
+            files = []
+            
+            print(f"  Preparing {num_files} test files...")
+            for i in range(num_files):
+                dest = temp_path / f"test_{i}.wav"
+                shutil.copy(self.test_audio_path, dest)
+                files.append(str(dest))
+            
+            # Benchmark sequential (simulated by 1 worker)
+            # Note: BatchProcessor defaults to cpu_count, we'll assume it uses multiprocessing
+            
+            print(f"  Running batch processing on {num_files} files...")
+            processor = BatchTranscriber()
+            
+            start_time = time.time()
+            results = processor.transcribe_batch(files, formatting_style="auto")
+            total_time = time.time() - start_time
+            
+            successful = len(results['successful'])
+            failed = len(results['failed'])
+            
+            return {
+                'file_count': num_files,
+                'total_time_seconds': total_time,
+                'avg_time_per_file': total_time / num_files,
+                'successful': successful,
+                'failed': failed,
+                'throughput_files_per_min': (num_files / total_time) * 60
+            }
+
+    def benchmark_realtime_simulation(self) -> Dict:
+        """Benchmark real-time transcription components."""
+        print("🧪 Benchmarking Real-Time Components...")
+        
+        # Test buffer performance
+        from collections import deque
+        import numpy as np
+        
+        buffer_size = 16000 * 30 # 30 seconds
+        audio_buffer = deque(maxlen=buffer_size)
+        chunk_size = 16000 # 1 second
+        
+        print("  Testing buffer write performance...")
+        start_time = time.time()
+        # Simulate writing 60 seconds of audio
+        for _ in range(60):
+            chunk = np.random.rand(chunk_size).astype(np.float32)
+            audio_buffer.extend(chunk)
+        write_time = time.time() - start_time
+        
+        print("  Testing buffer read performance...")
+        start_time = time.time()
+        # Read snapshot
+        _ = np.array(audio_buffer)
+        read_time = time.time() - start_time
+        
+        return {
+            'buffer_write_60s_time': write_time,
+            'buffer_read_snapshot_time': read_time,
+            'latency_overhead_ms': (write_time / 60 + read_time) * 1000
+        }
     
     def run_all_benchmarks(self) -> Dict:
         """Run all benchmarks and return comprehensive results."""
@@ -245,7 +313,9 @@ class PerformanceBenchmark:
             'text_formatter': self.benchmark_text_formatter(),
             'markdown_creation': self.benchmark_markdown_creation(),
             'memory_usage': self.benchmark_memory_usage(),
-            'concurrent_operations': self.benchmark_concurrent_operations()
+            'single_file': self.benchmark_single_file_transcription(),
+            'batch_processing': self.benchmark_batch_processing(),
+            'realtime_simulation': self.benchmark_realtime_simulation()
         }
         
         self.results = all_results
@@ -263,30 +333,38 @@ class PerformanceBenchmark:
         
         # System info
         print(f"🖥️  System: {self.system_info['cpu_count']} cores, {self.system_info['memory_gb']}GB RAM")
-        print(f"🐍 Python: {self.system_info['python_version'].split()[0]}")
         
-        # Text formatter performance
-        print("\n📝 Text Formatter Performance:")
-        for name, data in self.results['text_formatter'].items():
-            print(f"  {name}: {data['chars_per_second']:.0f} chars/sec")
-        
-        # Markdown creation performance
-        print("\n📄 Markdown Creation Performance:")
-        for name, data in self.results['markdown_creation'].items():
-            print(f"  {name}: {data['chars_per_second']:.0f} chars/sec")
-        
+        # Single File
+        if 'single_file' in self.results and self.results['single_file']:
+            sf = self.results['single_file']
+            print(f"\n🎧 Single File Transcription ({sf.get('model', 'unknown')}):")
+            print(f"  Load Time: {sf['load_time_seconds']:.2f}s")
+            print(f"  Cached Load: {sf['cached_load_time_seconds']:.4f}s")
+            print(f"  RTF (Real Time Factor): {sf['real_time_factor']:.2f}x")
+            
+            if self.baseline and 'single_file' in self.baseline:
+                base_rtf = self.baseline['single_file'].get('real_time_factor')
+                if base_rtf:
+                    imp = (base_rtf - sf['real_time_factor']) / base_rtf * 100
+                    print(f"  Improvement vs Baseline: {imp:+.1f}%")
+
+        # Batch Processing
+        if 'batch_processing' in self.results and self.results['batch_processing']:
+            bp = self.results['batch_processing']
+            print(f"\n📦 Batch Processing:")
+            print(f"  Throughput: {bp['throughput_files_per_min']:.1f} files/min")
+            print(f"  Avg Time/File: {bp['avg_time_per_file']:.2f}s")
+
+        # Realtime
+        if 'realtime_simulation' in self.results:
+            rt = self.results['realtime_simulation']
+            print(f"\n🔴 Real-time Latency Overhead:")
+            print(f"  Buffer Overhead: {rt['latency_overhead_ms']:.3f}ms")
+
         # Memory usage
         print(f"\n💾 Memory Usage:")
-        print(f"  Text Formatter: {self.results['memory_usage']['formatter_memory_mb']:.1f} MB")
-        print(f"  Markdown Creation: {self.results['memory_usage']['markdown_memory_mb']:.1f} MB")
+        print(f"  Total Overhead: {self.results['memory_usage']['total_memory_mb']:.1f} MB")
         
-        # Concurrent operations
-        print(f"\n🔄 Concurrent Operations:")
-        for name, data in self.results['concurrent_operations'].items():
-            if 'throughput' in data:
-                print(f"  {name}: {data['throughput']:.2f} ops/sec")
-            elif 'error' in data:
-                print(f"  {name}: Error - {data['error']}")
     
     def save_results(self, filename: str = "benchmark_results.json"):
         """Save benchmark results to JSON file."""
@@ -298,78 +376,17 @@ class PerformanceBenchmark:
             json.dump(self.results, f, indent=2)
         
         print(f"📁 Results saved to: {filename}")
-    
-    def get_recommendations(self) -> List[str]:
-        """Get performance optimization recommendations based on results."""
-        recommendations = []
-        
-        if not self.results:
-            return ["Run benchmarks first to get recommendations"]
-        
-        # Text formatter recommendations
-        text_perf = self.results['text_formatter']
-        avg_chars_per_sec = sum(data['chars_per_second'] for data in text_perf.values()) / len(text_perf)
-        
-        if avg_chars_per_sec < 1000:
-            recommendations.append("Text formatter performance is slow. Consider optimizing regex patterns.")
-        
-        # Memory usage recommendations
-        memory_usage = self.results['memory_usage']
-        if memory_usage['total_memory_mb'] > 100:
-            recommendations.append("High memory usage detected. Consider processing smaller chunks.")
-        
-        # Concurrent operations recommendations
-        concurrent = self.results['concurrent_operations']
-        single_thread_throughput = concurrent['1_threads']['throughput']
-        multi_thread_throughput = max(
-            data['throughput'] for key, data in concurrent.items() 
-            if 'throughput' in data and 'threads' in key
-        )
-        
-        speedup = multi_thread_throughput / single_thread_throughput if single_thread_throughput > 0 else 0
-        
-        if speedup < 1.5:
-            recommendations.append(
-                f"Limited threading speedup ({speedup:.2f}x). "
-                "✅ FIXED: Use batch_processor.py with ProcessPoolExecutor for CPU-bound tasks."
-            )
-        else:
-            recommendations.append(
-                f"Good threading performance ({speedup:.2f}x speedup). "
-                "Consider using batch_processor.py for even better performance."
-            )
-        
-        # Check if ProcessPoolExecutor performed better
-        if '4_processes' in concurrent and 'throughput' in concurrent['4_processes']:
-            process_throughput = concurrent['4_processes']['throughput']
-            thread_throughput = concurrent['4_threads']['throughput']
-            
-            if process_throughput > thread_throughput * 1.2:
-                recommendations.append(
-                    f"ProcessPoolExecutor is {process_throughput/thread_throughput:.2f}x faster! "
-                    "Use batch_processor.py with use_multiprocessing=True for batch operations."
-                )
-        
-        # System recommendations
-        if self.system_info['memory_gb'] < 4:
-            recommendations.append("Low memory system. Use smaller models or process shorter audio files.")
-        
-        if self.system_info['cpu_count'] < 4:
-            recommendations.append("Limited CPU cores. Consider using smaller models for better performance.")
-        else:
-            recommendations.append(
-                f"System has {self.system_info['cpu_count']} cores. "
-                "Use batch_processor.py to leverage parallel processing."
-            )
-        
-        return recommendations
 
 def main():
     """Main benchmark execution function."""
+    parser = argparse.ArgumentParser(description="Insightron Benchmark Suite")
+    parser.add_argument("--baseline", help="Path to baseline results JSON for comparison")
+    args = parser.parse_args()
+
     print("🎤 Insightron Performance Benchmark Suite")
     print("=" * 60)
     
-    benchmark = PerformanceBenchmark()
+    benchmark = PerformanceBenchmark(baseline_file=args.baseline)
     
     try:
         # Run all benchmarks
@@ -377,13 +394,6 @@ def main():
         
         # Print summary
         benchmark.print_summary()
-        
-        # Get recommendations
-        recommendations = benchmark.get_recommendations()
-        if recommendations:
-            print(f"\n💡 OPTIMIZATION RECOMMENDATIONS:")
-            for i, rec in enumerate(recommendations, 1):
-                print(f"  {i}. {rec}")
         
         # Save results
         benchmark.save_results()

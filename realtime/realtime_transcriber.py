@@ -6,10 +6,11 @@ import queue
 import logging
 import time
 from typing import Optional, Callable, List, Dict, Any
-from model_manager import ModelManager
-from config import (
+from core.model_manager import ModelManager
+from core.config import (
     REALTIME_BUFFER_SECONDS, 
     REALTIME_SILENCE_THRESHOLD,
+    DEFAULT_LANGUAGE,
     get_config
 )
 
@@ -61,6 +62,7 @@ class RealtimeTranscriber:
         # State
         self.full_audio_buffer = [] # Keep for saving recording
         self.transcribed_text = ""
+        self.language = get_config('transcription.language', DEFAULT_LANGUAGE)
         
         # Model Manager
         self.model_manager = ModelManager()
@@ -236,7 +238,7 @@ class RealtimeTranscriber:
             # Transcribe
             segments, info = self.model_manager.transcribe(
                 audio_chunk,
-                language="en", # TODO: Use config or auto-detect
+                language=self.language,
                 beam_size=1,   # Fast for realtime
                 vad_filter=True
             )

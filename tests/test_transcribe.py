@@ -25,7 +25,7 @@ class TestAudioTranscriber(unittest.TestCase):
         self.modules_patcher.start()
         
         # Now import AudioTranscriber (it will use the mocked model_manager)
-        from transcribe import AudioTranscriber
+        from transcription.transcribe import AudioTranscriber
         self.AudioTranscriber = AudioTranscriber
         
         # Initialize AudioTranscriber

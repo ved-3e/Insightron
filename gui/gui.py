@@ -7,10 +7,10 @@ import os
 import logging
 from typing import Optional, List
 from datetime import datetime
-from config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER, RECORDINGS_FOLDER, APP_VERSION
-from settings_manager import SettingsManager
-from realtime_transcriber import RealtimeTranscriber
-from utils import create_realtime_note
+from core.config import SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, TRANSCRIPTION_FOLDER, RECORDINGS_FOLDER, APP_VERSION
+from core.settings_manager import SettingsManager
+from realtime.realtime_transcriber import RealtimeTranscriber
+from core.utils import create_realtime_note
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +27,7 @@ class ModelManager:
     
     @classmethod
     def get_transcriber(cls, model_size: str, language: str = DEFAULT_LANGUAGE):
-        from transcribe import AudioTranscriber
+        from transcription.transcribe import AudioTranscriber
         
         # If model is loaded and size matches, reuse it
         if cls._model and cls._current_model_size == model_size:
@@ -812,7 +812,7 @@ class InsightronGUI:
     def transcribe_batch(self):
         """Batch worker"""
         try:
-            from batch_processor import batch_transcribe_files
+            from transcription.batch_processor import batch_transcribe_files
             
             self.update_progress("🔄 Starting batch...")
             model_size = self.model_var.get()

@@ -145,7 +145,7 @@ def create_directories():
     print("\nCreating directories...")
     
     try:
-        from config import TRANSCRIPTION_FOLDER
+        from core.config import TRANSCRIPTION_FOLDER
         TRANSCRIPTION_FOLDER.mkdir(parents=True, exist_ok=True)
         print(f"Created transcription folder: {TRANSCRIPTION_FOLDER}")
         return True
@@ -165,7 +165,7 @@ def test_installation():
         print("All core modules imported successfully")
         
         # Test basic functionality
-        from transcribe import AudioTranscriber
+        from transcription.transcribe import AudioTranscriber
         print("Transcription module loaded successfully")
         
         return True

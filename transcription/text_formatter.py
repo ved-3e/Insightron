@@ -10,7 +10,7 @@ import logging
 import hashlib
 from typing import List, Tuple, Dict, Set, Optional
 from functools import lru_cache
-from config import get_config
+from core.config import get_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -10,7 +10,7 @@ from unittest.mock import patch, MagicMock
 import yaml
 
 # Import config modules
-from config import (
+from core.config import (
     ConfigManager,
     ModelConfig,
     RuntimeConfig,
@@ -275,7 +275,7 @@ class TestBackwardCompatibility(unittest.TestCase):
     
     def test_module_level_constants_exist(self):
         """Test that module-level constants still exist."""
-        from config import (
+        from core.config import (
             WHISPER_MODEL,
             ENABLE_INT8_QUANTIZATION,
             TRANSCRIPTION_FOLDER,

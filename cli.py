@@ -10,8 +10,8 @@ import logging
 import time
 from pathlib import Path
 from typing import Optional
-from transcribe import AudioTranscriber
-from config import WHISPER_MODEL, SUPPORTED_LANGUAGES
+from transcription.transcribe import AudioTranscriber
+from core.config import WHISPER_MODEL, SUPPORTED_LANGUAGES
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -122,7 +122,7 @@ Examples:
         
         if use_batch and len(audio_files) > 1:
             # Use batch processor for multiple files
-            from batch_processor import batch_transcribe_files
+            from transcription.batch_processor import batch_transcribe_files
             
             logger.info(f"Starting batch transcription of {len(audio_files)} files")
             

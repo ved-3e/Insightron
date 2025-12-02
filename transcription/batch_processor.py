@@ -23,8 +23,8 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from transcribe import AudioTranscriber
-from config import WHISPER_MODEL, DEFAULT_LANGUAGE, get_config
+from transcription.transcribe import AudioTranscriber
+from core.config import WHISPER_MODEL, DEFAULT_LANGUAGE, get_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
