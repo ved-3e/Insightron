@@ -64,10 +64,6 @@ class RealtimeTranscriber:
         """Get list of available microphones."""
         devices = []
         try:
-            host_api_info = sd.query_host_apis()
-            # Prefer MME on Windows or Core Audio on macOS if needed, but default is usually fine.
-            # We'll just list all input devices.
-            
             all_devices = sd.query_devices()
             for i, dev in enumerate(all_devices):
                 if dev['max_input_channels'] > 0:
@@ -190,6 +186,7 @@ class RealtimeTranscriber:
                 
                 if rms > self.silence_threshold:
                     self.last_speech_time = current_time
+                    logger.debug(f"Speech detected (RMS: {rms:.4f})")
                 
                 # Check if we should transcribe
                 # 1. Silence duration exceeded AND
@@ -208,6 +205,11 @@ class RealtimeTranscriber:
             except Exception as e:
                 logger.error(f"Error in process loop: {e}")
                 time.sleep(0.1)
+        
+        # Process any remaining audio in buffer
+        if self.audio_buffer:
+            logger.info("Processing remaining audio buffer...")
+            self._transcribe_buffer()
 
     def _transcribe_buffer(self):
         """Transcribe the current audio buffer."""
@@ -224,7 +226,7 @@ class RealtimeTranscriber:
                 audio_data,
                 language=self.language if self.language != 'auto' else None,
                 beam_size=self.beam_size,
-                vad_filter=True  # Use VAD to filter out silence/noise
+                vad_filter=False  # Disabled - we have our own silence detection
             )
             
             # Process segments and update offsets
@@ -291,3 +293,5 @@ class RealtimeTranscriber:
         except Exception as e:
             logger.error(f"Error saving audio: {e}")
             return None
+
+
