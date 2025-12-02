@@ -582,9 +582,6 @@ created: {date}
 ---
 *Transcribed using Insightron - Realtime Transcription*  
 *Generated on {date}*
-
-
-Folder: {folder_path} 
 """
         return markdown
         

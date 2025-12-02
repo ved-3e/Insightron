@@ -37,7 +37,7 @@ class RealtimeTranscriber:
         
         # Silence detection parameters
         self.silence_threshold = 0.015  # Amplitude threshold (optimized)
-        self.silence_duration = 0.6    # Seconds of silence to trigger transcription (faster)
+        self.silence_duration = 1.0    # Seconds of silence to trigger transcription (more natural pauses)
         self.min_chunk_duration = 1.0  # Minimum audio duration to transcribe
         
         # State
@@ -142,7 +142,10 @@ class RealtimeTranscriber:
             self.stream = None
             
         if self.thread:
-            self.thread.join(timeout=2.0)
+            # Wait a bit longer for thread to finish
+            self.thread.join(timeout=5.0)
+            if self.thread.is_alive():
+                logger.warning("Transcriber thread did not exit cleanly")
             self.thread = None
             
         logger.info("Stopped transcription")
@@ -198,7 +201,7 @@ class RealtimeTranscriber:
                 buffer_duration = buffer_len / self.sample_rate
                 
                 if (silence_duration > self.silence_duration and buffer_duration > self.min_chunk_duration) or \
-                   (buffer_duration > 10.0): # Force transcribe if buffer gets too long (10s)
+                   (buffer_duration > 30.0): # Force transcribe if buffer gets too long (30s)
                     
                     self._transcribe_buffer()
                     
@@ -222,6 +225,10 @@ class RealtimeTranscriber:
         # Transcribe
         try:
             # faster-whisper accepts np.ndarray
+            # Flatten to 1D array to avoid "batch size" interpretation
+            if audio_data.ndim > 1:
+                audio_data = audio_data.flatten()
+                
             segments, info = self.model.transcribe(
                 audio_data,
                 language=self.language if self.language != 'auto' else None,
@@ -257,6 +264,11 @@ class RealtimeTranscriber:
             
         except Exception as e:
             logger.error(f"Realtime transcription error: {e}")
+            # Don't raise, just log so we don't kill the thread
+            if "mkl_malloc" in str(e) or "allocate" in str(e):
+                logger.critical("Memory allocation error detected. Clearing buffer to recover.")
+                self.audio_buffer.clear()
+                self.time_offset += len(audio_data) / self.sample_rate
 
     def get_transcription_data(self) -> Dict[str, Any]:
         """Get the full transcription data including segments."""
@@ -278,6 +290,10 @@ class RealtimeTranscriber:
         try:
             # Convert list of chunks to single numpy array
             full_audio = np.concatenate(self.full_audio_buffer)
+            
+            # Flatten to 1D array
+            if full_audio.ndim > 1:
+                full_audio = full_audio.flatten()
             
             # Convert float32 to 16-bit PCM
             audio_int16 = np.int16(full_audio * 32767)

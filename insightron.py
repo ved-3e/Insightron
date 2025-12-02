@@ -5,7 +5,14 @@ A modern GUI application for transcribing audio files using OpenAI's Whisper AI
 and saving the results to your Obsidian workspace.
 """
 
+import os
+
+# Fix for MKL memory allocation error
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+os.environ['OMP_NUM_THREADS'] = '1'
+
 import sys
+
 import os
 from pathlib import Path
 

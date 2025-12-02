@@ -439,35 +439,41 @@ class InsightronGUI:
                 # Save transcription note
                 try:
                     data = self.realtime_transcriber.get_transcription_data()
-                    if data['text']:
-                        note_filename = f"recording_{timestamp}"
+                    # Even if text is empty, save the note if we have audio
+                    text_content = data['text']
+                    if not text_content:
+                        text_content = "(No speech detected or transcription failed)"
                         
-                        # Calculate duration
-                        duration_seconds = 0
-                        if self.realtime_transcriber.full_audio_buffer.size > 0:
-                            duration_seconds = len(self.realtime_transcriber.full_audio_buffer) / self.realtime_transcriber.sample_rate
-                        
-                        minutes = int(duration_seconds // 60)
-                        seconds = int(duration_seconds % 60)
-                        duration_str = f"{minutes}:{seconds:02d}"
-                        
-                        note_content = create_realtime_note(
-                            filename=note_filename,
-                            text=data['text'],
-                            date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            duration=duration_str,
-                            file_size_mb=save_path.stat().st_size / (1024 * 1024) if save_path.exists() else 0,
-                            model=self.realtime_transcriber.model_size,
-                            language=data['language'],
-                            formatting_style=self.formatting_var.get(),
-                            duration_seconds=duration_seconds,
-                            segments=data['segments'],
-                            folder_path=str(TRANSCRIPTION_FOLDER)
-                        )
-                        
-                        note_path = TRANSCRIPTION_FOLDER / f"{note_filename}.md"
-                        note_path.write_text(note_content, encoding='utf-8')
-                        self.update_results(f"📝 Saved note to Insights: {note_filename}.md")
+                    note_filename = f"recording_{timestamp}"
+                    
+                    # Calculate duration
+                    duration_seconds = 0
+                    if self.realtime_transcriber.full_audio_buffer:
+                        # Calculate total samples from list of chunks
+                        total_samples = sum(len(chunk) for chunk in self.realtime_transcriber.full_audio_buffer)
+                        duration_seconds = total_samples / self.realtime_transcriber.sample_rate
+                    
+                    minutes = int(duration_seconds // 60)
+                    seconds = int(duration_seconds % 60)
+                    duration_str = f"{minutes}:{seconds:02d}"
+                    
+                    note_content = create_realtime_note(
+                        filename=note_filename,
+                        text=text_content,
+                        date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        duration=duration_str,
+                        file_size_mb=save_path.stat().st_size / (1024 * 1024) if save_path.exists() else 0,
+                        model=self.realtime_transcriber.model_size,
+                        language=data['language'],
+                        formatting_style=self.formatting_var.get(),
+                        duration_seconds=duration_seconds,
+                        segments=data['segments'],
+                        folder_path=str(TRANSCRIPTION_FOLDER)
+                    )
+                    
+                    note_path = TRANSCRIPTION_FOLDER / f"{note_filename}.md"
+                    note_path.write_text(note_content, encoding='utf-8')
+                    self.update_results(f"📝 Saved note to Insights: {note_filename}.md")
                         
                 except Exception as e:
                     logger.error(f"Failed to save note: {e}")
