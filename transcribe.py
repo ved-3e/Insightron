@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Callable
 import librosa
 import soundfile
-from faster_whisper import WhisperModel
+
 
 from utils import create_markdown
 from config import (
@@ -30,31 +30,29 @@ class AudioTranscriber:
     
     def __init__(self, model_size: str = WHISPER_MODEL, language: str = DEFAULT_LANGUAGE):
         """
-        Initialize the transcriber with the specified Whisper model.
+        Initialize the transcriber using the ModelManager singleton.
         
         Args:
-            model_size: Size of the model (tiny, base, small, medium, large-v2, distil-medium.en, etc.)
+            model_size: Size of the model (managed by ModelManager, argument kept for compatibility but logged if different)
             language: Default language code
         """
-        logger.info(f"Loading faster-whisper model: {model_size}...")
-        try:
-            # Use INT8 quantization for CPU speedup
-            compute_type = "int8"
+        from model_manager import ModelManager
+        
+        self.model_manager = ModelManager()
+        
+        # Check if requested model matches loaded model
+        if model_size != self.model_manager.model_size:
+            logger.warning(f"Requested model '{model_size}' but ModelManager is configured for '{self.model_manager.model_size}'. Using ModelManager's model.")
             
-            # device="auto" automatically selects CUDA if available
-            self.model = WhisperModel(model_size, device="auto", compute_type=compute_type)
-            self.model_size = model_size
-            self.supported_formats = {'.mp3', '.wav', '.m4a', '.flac', '.mp4', '.ogg', '.aac', '.wma'}
-            self.supported_languages = SUPPORTED_LANGUAGES
-            self.language = language
-            
-            # Optimization: Set beam size based on model type
-            self.beam_size = 1 if "distil" in model_size else 5
-            
-            logger.info(f"Successfully loaded {model_size} model (faster-whisper)")
-        except Exception as e:
-            logger.error(f"Failed to load faster-whisper model: {e}")
-            raise RuntimeError(f"Could not load model '{model_size}': {e}")
+        self.model_size = self.model_manager.model_size
+        self.supported_formats = {'.mp3', '.wav', '.m4a', '.flac', '.mp4', '.ogg', '.aac', '.wma'}
+        self.supported_languages = SUPPORTED_LANGUAGES
+        self.language = language
+        
+        # Optimization: Set beam size based on model type
+        self.beam_size = 1 if "distil" in self.model_size else 5
+        
+        logger.info(f"AudioTranscriber initialized with model: {self.model_size}")
 
     def set_language(self, language: str) -> bool:
         """Set the transcription language."""
@@ -130,7 +128,16 @@ class AudioTranscriber:
     def transcribe_file(self, audio_path: str, progress_callback: Optional[Callable[[str], None]] = None, 
                        formatting_style: str = "auto", language: Optional[str] = None) -> tuple[Path, Dict[str, Any]]:
         """
-        Transcribe audio file using faster-whisper with real-time segment tracking.
+        Transcribe audio file using the shared ModelManager instance.
+        
+        Args:
+            audio_path: Path to the audio file.
+            progress_callback: Optional callback for progress updates.
+            formatting_style: Formatting style for the output markdown.
+            language: Language code to force transcription in specific language.
+            
+        Returns:
+            Tuple containing the path to the generated markdown file and the transcription data dictionary.
         """
         start_time = datetime.now()
         
@@ -152,7 +159,9 @@ class AudioTranscriber:
             
             # Transcribe
             # faster-whisper returns a generator
-            segments, info = self.model.transcribe(
+            # Transcribe
+            # faster-whisper returns a generator
+            segments, info = self.model_manager.transcribe(
                 str(audio_path),
                 beam_size=self.beam_size,
                 language=transcription_language,

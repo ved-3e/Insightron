@@ -1,0 +1,130 @@
+# Insightron Configuration
+# This file contains all configuration settings for the Insightron transcription application.
+# Modify these settings to customize the behavior of your transcription system.
+
+# ============================================================================
+# Model Configuration
+# ============================================================================
+model:
+  # Model name: Whisper model size to use for transcription
+  # Options: tiny, base, small, medium, large, large-v2, distil-medium.en, distil-large-v2
+  # Smaller models are faster but less accurate. Larger models are slower but more accurate.
+  # distil-* models are optimized for speed with minimal accuracy loss.
+  # Default: medium (good balance of speed and accuracy)
+  name: "medium"
+  
+  # Compute type: Precision/quantization for model inference
+  # Options: float16, int8_float16, int8, float32
+  # int8 = fastest, lower memory, slight quality loss
+  # float16 = good speed, good quality (requires GPU)
+  # float32 = slowest, best quality
+  # Default: int8 (recommended for most use cases)
+  compute_type: "int8"
+  
+  # Device: Hardware to run the model on
+  # Options: auto, cpu, cuda
+  # auto = automatically detect and use GPU if available, otherwise CPU
+  # cpu = force CPU usage (slower but works everywhere)
+  # cuda = force GPU usage (requires NVIDIA GPU with CUDA support)
+  # Default: auto
+  device: "auto"
+
+# ============================================================================
+# Runtime Configuration
+# ============================================================================
+runtime:
+  # Transcription folder: Where transcription text files (.md) are saved
+  # Use absolute path. Backslashes must be doubled (\\) or use forward slashes (/)
+  # Default: D:\2. Areas\Ideaverse\Areas\Insights
+  transcription_folder: "D:\\2. Areas\\Ideaverse\\Areas\\Insights"
+  
+  # Recordings folder: Where audio recordings are saved
+  # Use absolute path. Backslashes must be doubled (\\) or use forward slashes (/)
+  # Default: D:\2. Areas\Ideaverse\Areas\Recordings
+  recordings_folder: "D:\\2. Areas\\Ideaverse\\Areas\\Recordings"
+  
+  # Maximum file size: Maximum audio file size to process (in megabytes)
+  # Files larger than this will be rejected with an error
+  # Default: 500 (MB)
+  max_file_size_mb: 500
+  
+  # Log level: Verbosity of logging output
+  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  # DEBUG = very verbose (for troubleshooting)
+  # INFO = normal operation messages
+  # WARNING = only warnings and errors
+  # Default: INFO
+  log_level: "INFO"
+  
+  # Worker count: Number of parallel workers for batch processing
+  # Set to a specific number (e.g., 4) or leave commented out for auto-detection
+  # Auto-detection uses os.cpu_count() to match your CPU cores
+  # Higher values = faster batch processing but more CPU/memory usage
+  # Default: auto (commented out)
+  # worker_count: 4
+
+# ============================================================================
+# Realtime Transcription Configuration
+# ============================================================================
+realtime:
+  # Sample rate: Audio sample rate in Hz for realtime recording
+  # Options: 8000, 16000, 22050, 44100, 48000
+  # 16000 Hz is optimal for Whisper and speech recognition
+  # Higher rates increase quality but also processing time and memory
+  # Default: 16000
+  sample_rate: 16000
+  
+  # Buffer duration: Size of the audio ring buffer in seconds
+  # This is the maximum audio history kept in memory
+  # Larger buffer = more context but more memory usage
+  # Default: 30 (seconds)
+  buffer_duration_seconds: 30
+  
+  # Chunk duration: Length of audio chunks sent to the model in seconds
+  # Larger chunks = better context but slower transcription
+  # Smaller chunks = faster but may miss context
+  # Default: 5 (seconds)
+  chunk_duration_seconds: 5
+  
+  # Stride: How often to run inference in seconds
+  # Smaller stride = more frequent updates but higher CPU usage
+  # Larger stride = less frequent updates but lower CPU usage
+  # Must be ≤ chunk_duration_seconds
+  # Default: 1 (second)
+  stride_seconds: 1
+  
+  # Silence threshold: RMS threshold below which audio is considered silence
+  # Range: 0.0 - 1.0 (normalized)
+  # Lower values = more sensitive (transcribes quieter audio)
+  # Higher values = less sensitive (ignores quiet audio)
+  # Default: 0.015
+  silence_threshold: 0.015
+  
+  # Silence duration: Minimum silence duration before stopping transcription
+  # Used for automatic recording pause detection
+  # Default: 0.5 (seconds)
+  silence_duration: 0.5
+
+# ============================================================================
+# Post-Processing Configuration
+# ============================================================================
+post_processing:
+  # Enable language detection: Automatically detect the language of transcribed text
+  # Currently a placeholder for future feature
+  # Default: false
+  enable_language_detection: false
+  
+  # Cache size: LRU cache size for language detection results
+  # Higher values = more caching but more memory usage
+  # Only relevant if language detection is enabled
+  # Default: 128
+  cache_size: 128
+  
+  # Formatting style: How to format transcription output
+  # Options: auto, paragraphs, minimal
+  # auto = smart paragraph breaks based on content analysis
+  # paragraphs = new paragraph every 3 sentences
+  # minimal = new paragraph every 5 sentences
+  # Default: auto
+  formatting_style: "auto"
+

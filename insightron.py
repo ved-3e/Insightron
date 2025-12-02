@@ -6,15 +6,13 @@ and saving the results to your Obsidian workspace.
 """
 
 import os
+import sys
+import argparse
+from pathlib import Path
 
 # Fix for MKL memory allocation error
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 os.environ['OMP_NUM_THREADS'] = '1'
-
-import sys
-
-import os
-from pathlib import Path
 
 # Force UTF-8 output on Windows (use reconfigure to avoid closing stdout)
 if sys.platform == "win32":
@@ -33,6 +31,8 @@ sys.path.append(str(Path(__file__).parent))
 try:
     from gui import InsightronGUI
     import customtkinter as ctk
+    from batch_processor import batch_transcribe_files
+    from config import WHISPER_MODEL, DEFAULT_LANGUAGE
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please install the required dependencies:")
@@ -83,20 +83,8 @@ def check_obsidian_path():
     
     return True
 
-def main():
-    """Main application entry point"""
-    print("🎤 Whisper AI Transcriber")
-    print("=" * 40)
-    
-    # Check dependencies
-    if not check_dependencies():
-        sys.exit(1)
-    
-    # Check Obsidian path
-    if not check_obsidian_path():
-        print("Please fix the configuration and try again.")
-        sys.exit(1)
-    
+def run_gui():
+    """Run the GUI application"""
     print("✅ All checks passed!")
     print("🚀 Starting GUI application...")
     
@@ -121,6 +109,85 @@ def main():
         print(f"❌ Error starting application: {e}")
         sys.exit(1)
 
+def run_batch(args):
+    """Run batch processing from CLI"""
+    print("🚀 Starting Batch Processing...")
+    
+    input_path = Path(args.input)
+    audio_files = []
+    
+    if input_path.is_file():
+        audio_files = [str(input_path)]
+    elif input_path.is_dir():
+        # Find all supported audio files
+        supported_exts = {'.mp3', '.wav', '.m4a', '.flac', '.mp4', '.ogg', '.aac', '.wma'}
+        for ext in supported_exts:
+            audio_files.extend([str(p) for p in input_path.glob(f"*{ext}")])
+    else:
+        print(f"❌ Error: Input path not found: {input_path}")
+        sys.exit(1)
+        
+    if not audio_files:
+        print(f"❌ No audio files found in: {input_path}")
+        sys.exit(1)
+        
+    print(f"Found {len(audio_files)} files to process.")
+    
+    try:
+        results = batch_transcribe_files(
+            audio_files=audio_files,
+            model_size=args.model,
+            language=args.language,
+            max_workers=args.workers,
+            use_multiprocessing=True,
+            progress_callback=lambda c, t, f: print(f"[{c}/{t}] Processing: {f}")
+        )
+        
+        print("\nBatch Processing Complete!")
+        print(f"Total time: {results['statistics']['total_time_seconds']:.2f}s")
+        print(f"Successful: {len(results['successful'])}")
+        print(f"Failed: {len(results['failed'])}")
+        
+        if results['failed']:
+            print("\nFailed files:")
+            for fail in results['failed']:
+                print(f" - {fail['file']}: {fail['error']}")
+                
+    except Exception as e:
+        print(f"❌ Error during batch processing: {e}")
+        sys.exit(1)
+
+def main():
+    """Main application entry point"""
+    print("🎤 Whisper AI Transcriber")
+    print("=" * 40)
+    
+    # Check dependencies
+    if not check_dependencies():
+        sys.exit(1)
+    
+    # Check Obsidian path
+    if not check_obsidian_path():
+        print("Please fix the configuration and try again.")
+        sys.exit(1)
+        
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="Insightron - AI Audio Transcriber")
+    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+    
+    # Batch command
+    batch_parser = subparsers.add_parser('batch', help='Run batch transcription')
+    batch_parser.add_argument('--input', '-i', required=True, help='Input file or directory')
+    batch_parser.add_argument('--workers', '-w', type=int, default=None, help='Number of worker processes')
+    batch_parser.add_argument('--model', '-m', default=WHISPER_MODEL, help='Whisper model size')
+    batch_parser.add_argument('--language', '-l', default=DEFAULT_LANGUAGE, help='Language code')
+    
+    args = parser.parse_args()
+    
+    if args.command == 'batch':
+        run_batch(args)
+    else:
+        run_gui()
+
 if __name__ == "__main__":
     main()
-    

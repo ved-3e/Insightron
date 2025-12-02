@@ -7,8 +7,10 @@ Optimized for performance and accuracy with improved error handling.
 
 import re
 import logging
-from typing import List, Tuple, Dict, Set
+import hashlib
+from typing import List, Tuple, Dict, Set, Optional
 from functools import lru_cache
+from config import get_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -84,7 +86,14 @@ class TextFormatter:
             (re.compile(r'\boperating\b', re.IGNORECASE), 'operating')
         ]
         
-        logger.info("TextFormatter initialized with optimized patterns")
+        # Get configuration for post-processing
+        self.cache_size = get_config('post_processing.cache_size', 128)
+        self.default_formatting_style = get_config('post_processing.formatting_style', 'auto')
+        
+        # Language detection cache (prepared for future use)
+        self._language_cache: Dict[str, str] = {}
+        
+        logger.info(f"TextFormatter initialized with cache_size={self.cache_size}, style={self.default_formatting_style}")
 
     def clean_text(self, text: str) -> str:
         """
@@ -160,6 +169,40 @@ class TextFormatter:
                 i += 1
         
         return ' '.join(cleaned_words)
+
+    def _detect_language_cached(self, text_hash: str) -> Optional[str]:
+        """
+        Cached language detection (prepared for future use).
+        Note: Uses instance method instead of lru_cache to allow dynamic cache size.
+        
+        Args:
+            text_hash: SHA-256 hash of the text content
+            
+        Returns:
+            Language code or None if not detected
+        """
+        # Check instance cache first
+        if text_hash in self._language_cache:
+            return self._language_cache[text_hash]
+        
+        # Placeholder for future language detection integration
+        # e.g., from langdetect import detect
+        # language = detect(text)
+        # self._language_cache[text_hash] = language
+        # return language
+        return None
+    
+    def _get_text_hash(self, text: str) -> str:
+        """
+        Generate SHA-256 hash for text caching.
+        
+        Args:
+            text: Text to hash
+            
+        Returns:
+            Hexadecimal hash string
+        """
+        return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
     def add_punctuation(self, text: str) -> str:
         """Add proper punctuation to the text"""
@@ -246,7 +289,7 @@ class TextFormatter:
         # Detect paragraph breaks
         paragraph_breaks = self.detect_paragraph_breaks(text)
         
-        # Build formatted text
+        # Build formatted text using list comprehension for better performance
         formatted_sentences = []
         
         for i, sentence in enumerate(sentences):
@@ -259,17 +302,15 @@ class TextFormatter:
             if sentence:
                 # Capitalize first letter
                 sentence = sentence[0].upper() + sentence[1:] if len(sentence) > 1 else sentence.upper()
+                
+                # Ensure sentence ends with punctuation (sentences lose punctuation during split)
+                if not sentence.endswith(('.', '!', '?', ':', ';', ',')):
+                    sentence = sentence + '.'
+                
                 formatted_sentences.append(sentence)
         
-        # Join sentences with proper spacing
-        result = []
-        for sentence in formatted_sentences:
-            if sentence:  # Non-empty sentence
-                result.append(sentence)
-            else:  # Empty line for paragraph break
-                result.append('')
-        
-        return '\n'.join(result)
+        # Join sentences with proper spacing (optimized: single join operation)
+        return '\n'.join(formatted_sentences)
 
     def format_with_custom_structure(self, text: str, max_sentences_per_paragraph: int = 3) -> str:
         """Format text with custom paragraph structure"""
@@ -297,9 +338,11 @@ class TextFormatter:
             )
             
             if should_break and current_paragraph:
+                # Optimized: build paragraph string once
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
         
+        # Optimized: single join operation for final result
         return '\n\n'.join(paragraphs)
 
 def format_transcript(text: str, style: str = "auto") -> str:

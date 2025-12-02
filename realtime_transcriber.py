@@ -6,7 +6,12 @@ import queue
 import logging
 import time
 from typing import Optional, Callable, List, Dict, Any
-from faster_whisper import WhisperModel
+from model_manager import ModelManager
+from config import (
+    REALTIME_BUFFER_SECONDS, 
+    REALTIME_SILENCE_THRESHOLD,
+    get_config
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,59 +20,59 @@ logger = logging.getLogger(__name__)
 class RealtimeTranscriber:
     """
     Realtime Audio Transcriber using sounddevice and faster-whisper.
-    Uses silence detection to chunk audio for smooth transcription.
+    Uses a ring buffer and producer-consumer architecture for smooth transcription.
     """
     
-    def __init__(self, model_size: str = "base", language: str = "en"):
-        self.model_size = model_size
-        self.language = language
-        self.model = None
+    def __init__(self):
         self.is_running = False
-        self.audio_queue = queue.Queue()
         self.result_callback = None
         self.audio_level_callback = None
         self.stream = None
-        self.thread = None
         
         # Audio parameters
-        self.sample_rate = 16000
+        self.sample_rate = get_config('realtime.sample_rate', 16000)
         self.channels = 1
         self.dtype = 'float32'
-        self.block_size = 4096  # Audio block size
+        self.block_size = 4096
         
-        # Silence detection parameters
-        self.silence_threshold = 0.015  # Amplitude threshold (optimized)
-        self.silence_duration = 1.0    # Seconds of silence to trigger transcription (more natural pauses)
-        self.min_chunk_duration = 1.0  # Minimum audio duration to transcribe
+        # Ring Buffer Configuration
+        self.buffer_duration = REALTIME_BUFFER_SECONDS
+        self.buffer_size = int(self.sample_rate * self.buffer_duration)
+        self.ring_buffer = np.zeros(self.buffer_size, dtype=self.dtype)
+        self.write_index = 0
+        
+        # Processing parameters
+        self.chunk_duration = get_config('realtime.chunk_duration_seconds', 5)
+        self.stride = get_config('realtime.stride_seconds', 1)
+        self.chunk_samples = int(self.sample_rate * self.chunk_duration)
+        self.stride_samples = int(self.sample_rate * self.stride)
+        
+        # Silence detection
+        self.silence_threshold = REALTIME_SILENCE_THRESHOLD
+        self.silence_duration = get_config('realtime.silence_duration', 0.5)
+        self.last_speech_time = 0
+        
+        # Threading
+        self.capture_thread = None
+        self.process_thread = None
+        self.audio_queue = queue.Queue()
+        self.stop_event = threading.Event()
         
         # State
-        # Optimization: Use deque for efficient appending
-        self.audio_buffer = collections.deque()
-        self.full_audio_buffer = []  # Store complete recording as list of chunks
-        self.last_speech_time = time.time()
-        self.transcribed_segments = []
-        self.time_offset = 0.0
+        self.full_audio_buffer = [] # Keep for saving recording
+        self.transcribed_text = ""
         
-    def initialize_model(self):
-        """Initialize the Whisper model if not already loaded."""
-        if self.model is None:
-            logger.info(f"Loading realtime model: {self.model_size}...")
-            # Use int8 for speed
-            self.model = WhisperModel(self.model_size, device="auto", compute_type="int8")
-            
-            # Optimization: Set beam size
-            self.beam_size = 1 if "distil" in self.model_size else 5
-            
-            logger.info(f"Realtime model loaded (beam_size={self.beam_size}).")
+        # Model Manager
+        self.model_manager = ModelManager()
 
     def get_microphones(self) -> List[Dict[str, any]]:
         """Get list of available microphones."""
         devices = []
         try:
+            # Filter for input devices
             all_devices = sd.query_devices()
             for i, dev in enumerate(all_devices):
                 if dev['max_input_channels'] > 0:
-                    # Filter out some virtual devices if needed, but for now list all
                     devices.append({
                         'index': i,
                         'name': dev['name'],
@@ -76,43 +81,35 @@ class RealtimeTranscriber:
                     })
         except Exception as e:
             logger.error(f"Error listing microphones: {e}")
-            # Fallback
             devices.append({'index': -1, 'name': 'Default Microphone'})
-            
         return devices
 
     def start_transcription(self, device_index: int, callback: Callable[[str], None], 
                            audio_level_callback: Optional[Callable[[float], None]] = None):
-        """
-        Start realtime transcription.
-        
-        Args:
-            device_index: Index of the microphone device
-            callback: Function to call with transcribed text
-            audio_level_callback: Optional callback for audio level updates (0.0-1.0)
-        """
+        """Start realtime transcription."""
         if self.is_running:
             return
 
-        self.initialize_model()
         self.result_callback = callback
         self.audio_level_callback = audio_level_callback
         self.is_running = True
-        self.audio_buffer = collections.deque()
-        self.full_audio_buffer = []  # Reset full buffer
-        self.transcribed_segments = []
-        self.time_offset = 0.0
+        self.stop_event.clear()
+        
+        # Reset buffers
+        self.ring_buffer.fill(0)
+        self.write_index = 0
+        self.full_audio_buffer = []
+        self.transcribed_text = ""
         self.last_speech_time = time.time()
         
         # Clear queue
         with self.audio_queue.mutex:
             self.audio_queue.queue.clear()
-            
-        # Start processing thread
-        self.thread = threading.Thread(target=self._process_loop, daemon=True)
-        self.thread.start()
+
+        # Start threads
+        self.process_thread = threading.Thread(target=self._process_loop, daemon=True)
+        self.process_thread.start()
         
-        # Start audio stream
         try:
             self.stream = sd.InputStream(
                 device=device_index if device_index >= 0 else None,
@@ -126,12 +123,14 @@ class RealtimeTranscriber:
             logger.info(f"Started recording on device {device_index}")
         except Exception as e:
             self.is_running = False
+            self.stop_event.set()
             logger.error(f"Failed to start stream: {e}")
             raise e
 
     def stop_transcription(self):
         """Stop realtime transcription."""
         self.is_running = False
+        self.stop_event.set()
         
         if self.stream:
             try:
@@ -141,12 +140,9 @@ class RealtimeTranscriber:
                 logger.error(f"Error closing stream: {e}")
             self.stream = None
             
-        if self.thread:
-            # Wait a bit longer for thread to finish
-            self.thread.join(timeout=5.0)
-            if self.thread.is_alive():
-                logger.warning("Transcriber thread did not exit cleanly")
-            self.thread = None
+        if self.process_thread:
+            self.process_thread.join(timeout=2.0)
+            self.process_thread = None
             
         logger.info("Stopped transcription")
 
@@ -154,160 +150,135 @@ class RealtimeTranscriber:
         """Callback for sounddevice."""
         if status:
             logger.warning(f"Audio status: {status}")
-        if self.is_running:
-            # Calculate RMS audio level for visualization
-            rms = np.sqrt(np.mean(indata**2))
-            # Normalize to 0-1 range - reduced from 0.5 to 0.15 for more sensitivity
-            level = min(rms / 0.15, 1.0)
             
-            if self.audio_level_callback:
-                try:
-                    self.audio_level_callback(level)
-                except Exception as e:
-                    logger.error(f"Error in audio level callback: {e}")
-            
-            self.audio_queue.put(indata.copy())
+        if not self.is_running:
+            return
+
+        # 1. Update Audio Level
+        rms = np.sqrt(np.mean(indata**2))
+        if self.audio_level_callback:
+            try:
+                # Normalize for UI (0.0 - 1.0)
+                level = min(rms / 0.15, 1.0)
+                self.audio_level_callback(level)
+            except Exception:
+                pass
+
+        # 2. Write to Ring Buffer
+        # Handle wrapping if needed (though we just overwrite in a circular manner)
+        # For simplicity in this version, we'll just push to a queue for the processor 
+        # to handle the ring buffer logic safely off the audio thread.
+        # BUT, to keep the callback fast, we just copy.
+        self.audio_queue.put(indata.copy())
+        
+        # 3. Store for saving
+        self.full_audio_buffer.append(indata.copy())
 
     def _process_loop(self):
-        """Main processing loop."""
-        while self.is_running:
+        """Consumer thread: reads audio, updates ring buffer, runs inference."""
+        logger.info("Processing thread started")
+        
+        # Local buffer to accumulate small chunks from callback until we have enough for stride
+        accumulated_samples = 0
+        
+        while not self.stop_event.is_set():
             try:
-                # Get audio from queue
+                # Get data from queue
                 try:
-                    # Non-blocking get with timeout to check is_running
                     data = self.audio_queue.get(timeout=0.1)
-                    self.audio_buffer.append(data)
-                    # Also store in full buffer for saving
-                    self.full_audio_buffer.append(data)
                 except queue.Empty:
                     continue
                 
-                # Analyze audio for silence
-                # Simple RMS amplitude
-                rms = np.sqrt(np.mean(data**2))
-                current_time = time.time()
+                # Update Ring Buffer
+                num_samples = len(data)
                 
-                if rms > self.silence_threshold:
-                    self.last_speech_time = current_time
-                    logger.debug(f"Speech detected (RMS: {rms:.4f})")
+                # Check for buffer overflow/wrap-around
+                if self.write_index + num_samples > self.buffer_size:
+                    # Wrap around
+                    diff = self.buffer_size - self.write_index
+                    self.ring_buffer[self.write_index:] = data[:diff, 0] # data is (samples, 1)
+                    self.ring_buffer[:num_samples - diff] = data[diff:, 0]
+                    self.write_index = num_samples - diff
+                else:
+                    self.ring_buffer[self.write_index:self.write_index + num_samples] = data[:, 0]
+                    self.write_index += num_samples
                 
-                # Check if we should transcribe
-                # 1. Silence duration exceeded AND
-                # 2. Minimum chunk duration met
-                silence_duration = current_time - self.last_speech_time
+                accumulated_samples += num_samples
                 
-                # Calculate buffer duration (approximate)
-                buffer_len = sum(len(c) for c in self.audio_buffer)
-                buffer_duration = buffer_len / self.sample_rate
-                
-                if (silence_duration > self.silence_duration and buffer_duration > self.min_chunk_duration) or \
-                   (buffer_duration > 30.0): # Force transcribe if buffer gets too long (30s)
-                    
-                    self._transcribe_buffer()
+                # Check if we have enough new data to run inference (stride)
+                if accumulated_samples >= self.stride_samples:
+                    self._run_inference()
+                    accumulated_samples = 0 # Reset stride counter (approximate)
                     
             except Exception as e:
                 logger.error(f"Error in process loop: {e}")
-                time.sleep(0.1)
-        
-        # Process any remaining audio in buffer
-        if self.audio_buffer:
-            logger.info("Processing remaining audio buffer...")
-            self._transcribe_buffer()
-
-    def _transcribe_buffer(self):
-        """Transcribe the current audio buffer."""
-        if not self.audio_buffer:
-            return
-            
-        # Convert deque of chunks to single numpy array
-        audio_data = np.concatenate(list(self.audio_buffer))
-            
-        # Transcribe
-        try:
-            # faster-whisper accepts np.ndarray
-            # Flatten to 1D array to avoid "batch size" interpretation
-            if audio_data.ndim > 1:
-                audio_data = audio_data.flatten()
                 
-            segments, info = self.model.transcribe(
-                audio_data,
-                language=self.language if self.language != 'auto' else None,
-                beam_size=self.beam_size,
-                vad_filter=False  # Disabled - we have our own silence detection
+    def _run_inference(self):
+        """Run Whisper inference on the latest chunk from ring buffer."""
+        # Extract latest chunk
+        # We want the last 'chunk_samples' ending at 'write_index'
+        
+        if self.write_index >= self.chunk_samples:
+            audio_chunk = self.ring_buffer[self.write_index - self.chunk_samples : self.write_index]
+        else:
+            # Wrap around case: take end of buffer + start of buffer
+            part2 = self.ring_buffer[:self.write_index]
+            part1 = self.ring_buffer[-(self.chunk_samples - len(part2)):]
+            audio_chunk = np.concatenate((part1, part2))
+            
+        # Check for silence
+        rms = np.sqrt(np.mean(audio_chunk**2))
+        if rms < self.silence_threshold:
+            # Too silent, skip inference to save compute
+            return
+
+        try:
+            # Transcribe
+            segments, info = self.model_manager.transcribe(
+                audio_chunk,
+                language="en", # TODO: Use config or auto-detect
+                beam_size=1,   # Fast for realtime
+                vad_filter=True
             )
             
-            # Process segments and update offsets
-            buffer_text = []
-            for segment in segments:
-                # Adjust timestamps with current offset
-                adjusted_segment = {
-                    'start': segment.start + self.time_offset,
-                    'end': segment.end + self.time_offset,
-                    'text': segment.text
-                }
-                self.transcribed_segments.append(adjusted_segment)
-                buffer_text.append(segment.text)
-            
-            text = " ".join(buffer_text).strip()
+            # Collect text
+            text = " ".join([s.text for s in segments]).strip()
             
             if text:
-                logger.info(f"Realtime transcribed: {text}")
+                # Heuristic: If text is very similar to previous, don't update (stabilization)
+                # For now, just send it.
                 if self.result_callback:
                     self.result_callback(text)
-            
-            # Update time offset before clearing buffer
-            buffer_duration = len(audio_data) / self.sample_rate
-            self.time_offset += buffer_duration
-            
-            # Reset buffer
-            self.audio_buffer.clear()
-            
+                    
         except Exception as e:
-            logger.error(f"Realtime transcription error: {e}")
-            # Don't raise, just log so we don't kill the thread
-            if "mkl_malloc" in str(e) or "allocate" in str(e):
-                logger.critical("Memory allocation error detected. Clearing buffer to recover.")
-                self.audio_buffer.clear()
-                self.time_offset += len(audio_data) / self.sample_rate
-
-    def get_transcription_data(self) -> Dict[str, Any]:
-        """Get the full transcription data including segments."""
-        full_text = " ".join([s['text'] for s in self.transcribed_segments])
-        return {
-            'text': full_text,
-            'segments': self.transcribed_segments,
-            'language': self.language
-        }
+            logger.error(f"Inference error: {e}")
 
     def save_recording(self, output_path: str):
-        """Save the recorded audio to WAV file"""
+        """Save the recorded audio to WAV file."""
         import wave
         
         if not self.full_audio_buffer:
-            logger.warning("No audio to save")
             return None
-        
-        try:
-            # Convert list of chunks to single numpy array
-            full_audio = np.concatenate(self.full_audio_buffer)
             
-            # Flatten to 1D array
+        try:
+            full_audio = np.concatenate(self.full_audio_buffer)
+            # Flatten
             if full_audio.ndim > 1:
                 full_audio = full_audio.flatten()
-            
-            # Convert float32 to 16-bit PCM
+                
+            # Convert to int16
             audio_int16 = np.int16(full_audio * 32767)
             
             with wave.open(output_path, 'wb') as wf:
                 wf.setnchannels(self.channels)
-                wf.setsampwidth(2)  # 16-bit = 2 bytes
+                wf.setsampwidth(2)
                 wf.setframerate(self.sample_rate)
                 wf.writeframes(audio_int16.tobytes())
-            
-            logger.info(f"Audio saved to {output_path}")
+                
             return output_path
         except Exception as e:
             logger.error(f"Error saving audio: {e}")
             return None
+
 
 
