@@ -62,6 +62,16 @@ def main():
         print("⚠️  This installer is optimized for Windows")
         print("   For other platforms, use: pip install -r setup/requirements.txt")
     
+    # Check Python version compatibility
+    if sys.version_info.minor > 12:
+        print("\n⚠️  WARNING: You are using Python 3.{}".format(sys.version_info.minor))
+        print("   Many scientific packages (like onnxruntime) do not yet support Python 3.13+.")
+        print("   We STRONGLY recommend using Python 3.10, 3.11, or 3.12.")
+        print("   The installation is likely to fail.\n")
+        response = input("   Do you want to continue anyway? (y/N): ")
+        if response.lower() != 'y':
+            sys.exit(1)
+    
     # Check for Rust
     rust_available = check_rust_installed()
     if not rust_available:

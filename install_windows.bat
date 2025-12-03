@@ -9,9 +9,23 @@ echo.
 
 REM Check Python version
 python --version
+for /f "tokens=2 delims=." %%I in ('python -c "import sys; print(sys.version_info.minor)"') do set PYTHON_MINOR=%%I
+
+if %PYTHON_MINOR% gtr 12 (
+    echo.
+    echo [WARNING] You are using Python 3.%PYTHON_MINOR%.
+    echo           Many scientific packages ^(like onnxruntime^) do not yet support Python 3.13+.
+    echo           This installation will likely fail.
+    echo.
+    echo           PLEASE INSTALL PYTHON 3.10, 3.11, or 3.12.
+    echo.
+    echo           Press Ctrl+C to cancel or any key to try anyway...
+    pause
+)
+
 if %errorlevel% neq 0 (
     echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.10+ from https://python.org
+    echo Please install Python 3.10 - 3.12 from https://python.org
     pause
     exit /b 1
 )
