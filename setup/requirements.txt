@@ -1,8 +1,10 @@
 # Insightron v1.0.0 - Enhanced Whisper AI Transcription Project Requirements
 # Optimized for performance, reliability, and cross-platform compatibility
 
-# Core Whisper AI (latest stable with enhanced features)
-faster-whisper>=1.0.0
+# Core Whisper AI (faster-whisper with CTranslate2)
+# v1.2.0+ uses importlib.metadata (no pkg_resources warnings)
+# Includes batched inference for 4x faster batch processing
+faster-whisper>=1.2.0
 
 # Essential audio processing (optimized versions for stability)
 librosa>=0.10.1
