@@ -78,14 +78,22 @@ pip install -r requirements.txt
 
 ### 2. **Configuration**
 
-Update `config.py` with your Obsidian vault path:
+Insightron uses a `config.yaml` file for easy configuration. The file is automatically created on first run if it doesn't exist.
 
-```python
-# Path to your Obsidian Vault
-OBSIDIAN_VAULT_PATH = Path(r"D:\2. Areas\IdeaVerse\Areas")
+Edit `config.yaml` to set your paths and preferences:
 
-# Folder inside vault for insights
-TRANSCRIPTION_FOLDER = OBSIDIAN_VAULT_PATH / "Insights"
+```yaml
+runtime:
+  # Where to save transcription files
+  transcription_folder: "D:\\2. Areas\\Ideaverse\\Areas\\Insights"
+  
+  # Where to save audio recordings
+  recordings_folder: "D:\\2. Areas\\Ideaverse\\Areas\\Recordings"
+
+model:
+  name: "medium"
+  device: "auto"
+  compute_type: "int8"
 ```
 
 ### 3. **Launch Insightron**
@@ -152,30 +160,19 @@ python cli.py audio.mp3 -m large
 # Custom formatting
 python cli.py audio.mp3 -f paragraphs
 
-# Verbose output
-python cli.py audio.mp3 -v
+# Batch processing (multiple files)
+python cli.py audio1.mp3 audio2.mp3
+python cli.py *.mp3 -b
+
+# Batch with specific worker count
+python cli.py *.wav -b -w 4
+
+# Use process pool (better for CPU-bound tasks)
+python cli.py *.mp3 -b --use-processes
 
 # Custom output location
-python cli.py audio.mp3 -o /path/to/output.md
-
-# Quiet mode (minimal output)
-python cli.py audio.mp3 -q
+python cli.py audio.mp3 -o "D:\Output\transcript.md"
 ```
-
-### **CLI Options**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-m, --model` | Whisper model size (tiny, base, small, medium, large, distil-medium.en, distil-large-v2) | medium |
-├── requirements-minimal.txt # 📦 Minimal dependencies
-├── test_formatting.py      # 🧪 Text formatting tests
-├── test_macos_gui.py       # 🧪 GUI interface tests
-└── README.md              # 📖 This documentation
-```
-
-## 🌍 Multi-Language Support
-
-### **Supported Languages**
 
 Insightron supports **100+ languages** including all major world languages:
 
@@ -317,7 +314,7 @@ pip install -r requirements-minimal.txt
 - **GPU not detected**: Install CUDA toolkit for GPU acceleration
 
 #### **Obsidian Integration**
-- **Path not found**: Update `OBSIDIAN_VAULT_PATH` in `config.py`
+- **Path not found**: Update `transcription_folder` in `config.yaml`
 - **Permission denied**: Run as administrator or check folder permissions
 - **Files not appearing**: Refresh Obsidian or check the correct folder
 
@@ -362,6 +359,22 @@ self.colors = {
 - Use `medium` or `large` models for better accuracy
 - Ensure good audio quality (clear speech, minimal background noise)
 - Use appropriate formatting style for your content type
+
+## ⏱️ Benchmarking
+
+Insightron includes a built-in benchmarking tool to test performance on your system.
+
+```bash
+# Run standard benchmark
+python benchmark_insightron.py
+
+# The benchmark will:
+# 1. Generate a test audio file
+# 2. Run single-file transcription
+# 3. Run batch transcription
+# 4. Test realtime simulation
+# 5. Save results to benchmark_results.json
+```
 
 ## 🤝 Contributing
 
@@ -449,23 +462,9 @@ black *.py
 - ✅ **Polished Cards**: Subtle borders and improved spacing
 - ✅ **Enhanced Typography**: Larger icons and better font hierarchy
 - ✅ **Smooth Animations**: Premium hover effects throughout
-
-### **📦 Batch Processing**
-- ✅ **Tabbed Interface**: Dedicated "Batch Mode" tab
-- ✅ **Multi-File Selection**: Process multiple files or entire folders at once
-- ✅ **Optimized Engine**: Reuses model instance for faster batch processing
-- ✅ **Thread Pool**: Concurrent processing for maximum throughput
-- ✅ **Progress Tracking**: Real-time updates for each file
-
-### **💾 Settings Persistence**
-- ✅ **Automatic Saving**: Model, Language, and Formatting preferences saved to `user_settings.json`
-- ✅ **Auto-Load**: Settings restored on startup
-- ✅ **Seamless UX**: No need to reconfigure every session
-
-### **📝 Compact Timestamped Logs**
-- ✅ **Terminal-Style Output**: Professional log format with `[HH:MM:SS]` timestamps
-- ✅ **Smaller Font**: Consolas 11pt for compact display
-- ✅ **Clean Messages**: Concise, informative status updates
+- ✅ **Batch Processing**: Dedicated tab for multi-file processing
+- ✅ **Settings Persistence**: Preferences saved automatically
+- ✅ **Compact Logs**: Cleaner terminal output
 
 ### **Previous Updates (v1.1.0)**
 - ✅ **100+ Languages**: Support for all Whisper-supported languages

@@ -218,7 +218,7 @@ class TestConfigManager(unittest.TestCase):
         finally:
             os.unlink(config_path)
     
-    @patch('config.Path.mkdir')
+    @patch('core.config.Path.mkdir')
     def test_ensure_directories(self, mock_mkdir):
         """Test that ConfigManager creates necessary directories."""
         manager = ConfigManager('nonexistent.yaml')
@@ -239,7 +239,7 @@ class TestConfigHelperFunctions(unittest.TestCase):
         """Test get_config() helper function."""
         # The get_config function uses the global _config_manager instance
         # We need to replace it with our test instance
-        import config
+        from core import config
         
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             config_data = {'model': {'name': 'large'}}
