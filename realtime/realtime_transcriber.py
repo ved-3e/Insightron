@@ -63,6 +63,9 @@ class RealtimeTranscriber:
         self.full_audio_buffer = [] # Keep for saving recording
         self.transcribed_text = ""
         self.language = get_config('transcription.language', DEFAULT_LANGUAGE)
+        self.model_size = get_config('model.name', 'medium')  # Default model size
+        self.transcribed_segments = []  # Store all transcribed segments
+        self.detected_language = None  # Store detected language
         
         # Model Manager
         self.model_manager = ModelManager()
@@ -102,6 +105,8 @@ class RealtimeTranscriber:
         self.write_index = 0
         self.full_audio_buffer = []
         self.transcribed_text = ""
+        self.transcribed_segments = []
+        self.detected_language = None
         self.last_speech_time = time.time()
         
         # Clear queue
@@ -236,17 +241,32 @@ class RealtimeTranscriber:
 
         try:
             # Transcribe
+            # Convert 'auto' to None for faster-whisper compatibility
+            lang = None if self.language == 'auto' else self.language
             segments, info = self.model_manager.transcribe(
                 audio_chunk,
-                language=self.language,
+                language=lang,
                 beam_size=1,   # Fast for realtime
                 vad_filter=True
             )
             
             # Collect text
-            text = " ".join([s.text for s in segments]).strip()
+            segment_list = list(segments)
+            text = " ".join([s.text for s in segment_list]).strip()
+            
+            # Track detected language from first inference
+            if self.detected_language is None and info:
+                self.detected_language = info.language
             
             if text:
+                # Store segments for note saving
+                for seg in segment_list:
+                    self.transcribed_segments.append({
+                        'start': seg.start,
+                        'end': seg.end,
+                        'text': seg.text
+                    })
+                
                 # Heuristic: If text is very similar to previous, don't update (stabilization)
                 # For now, just send it.
                 if self.result_callback:
@@ -281,6 +301,17 @@ class RealtimeTranscriber:
         except Exception as e:
             logger.error(f"Error saving audio: {e}")
             return None
+
+    def get_transcription_data(self):
+        """Get transcription data for saving notes."""
+        # Combine all transcribed text
+        all_text = " ".join([seg['text'] for seg in self.transcribed_segments]).strip()
+        
+        return {
+            'text': all_text,
+            'language': self.detected_language or self.language,
+            'segments': self.transcribed_segments
+        }
 
 
 
