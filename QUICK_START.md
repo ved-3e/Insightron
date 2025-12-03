@@ -43,6 +43,9 @@ python cli.py *.mp3 -b --use-processes
 
 # Batch with 4 workers and custom settings
 python cli.py audio*.mp3 -b -w 4 -m medium -l en
+
+# Create bulleted lists from speech
+python cli.py meeting_notes.wav -f bullets
 ```
 
 ### Method 2: Python API

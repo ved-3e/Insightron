@@ -1,4 +1,4 @@
-# 🎤 Insightron v2.0.0 - Next-Gen AI Transcriber
+# 🎤 Insightron v2.1.0 - Next-Gen AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
@@ -16,6 +16,9 @@ Insightron is a next-generation transcription application powered by **faster-wh
 - **💾 Smart File Operations**: Atomic writes prevent data corruption
 - **🔧 Cross-Platform**: Seamless Windows, macOS, and Linux support
 - **🔴 Realtime Transcription**: Low-latency live audio capture with automatic Obsidian note saving
+- 🛡️ **Robust Error Handling**: Intelligent retry mechanism with automatic parameter adjustment for difficult audio
+- 🧠 **Adaptive VAD**: Dynamic voice activity detection that adapts to changing background noise levels
+- ✨ **Smart Segment Merging**: Intelligently merges fragmented speech for more coherent sentences
 
 ### 🎨 **Modern Dark-Black Theme** ✨
 - **Pure Black Background**: Material Dark theme perfect for OLED screens
@@ -46,7 +49,7 @@ Insightron is a next-generation transcription application powered by **faster-wh
 - **Smart Formatting**: Auto-detects paragraph breaks and sentence structure
 - **Filler Word Removal**: Cleans up "um", "uh", and repetitive phrases
 - **Transcription Fixes**: Corrects common Whisper AI errors
-- **Multiple Styles**: Auto, paragraph, and minimal formatting options
+- **Multiple Styles**: Auto, paragraph, bullets, and minimal formatting options
 
 ### 🔗 **Obsidian Integration**
 - **Seamless Workflow**: Direct save to your Obsidian vault
@@ -159,6 +162,9 @@ python cli.py audio.mp3 -m large
 
 # Custom formatting
 python cli.py audio.mp3 -f paragraphs
+
+# Create bulleted lists from speech
+python cli.py meeting_notes.wav -f bullets
 
 # Batch processing (multiple files)
 python cli.py audio1.mp3 audio2.mp3
@@ -426,9 +432,18 @@ black *.py
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
 
-**Insightron v2.0.0** - Speed, Efficiency, and Intelligence
+**Insightron v2.1.0** - Speed, Efficiency, and Intelligence
 
-## 🆕 What's New in v2.0.0
+## 🆕 What's New in v2.1.0
+
+### **🚀 New Features**
+- ✅ **Bullets Formatting**: New "bullets" formatting style to automatically create bulleted lists from speech.
+- ✅ **Smart Segment Merging**: Intelligent algorithm to merge fragmented speech segments based on confidence and timing.
+- ✅ **Adaptive VAD**: Dynamic Voice Activity Detection that adjusts thresholds based on audio characteristics.
+- ✅ **Retry Mechanism**: Robust error handling that automatically retries failed transcriptions with fallback parameters.
+- ✅ **Quality Metrics**: Detailed quality reporting including confidence scores and low-confidence segment counts.
+
+### **Previous Updates (v2.0.0)**
 
 ### **🚀 Performance Revolution**
 - ✅ **Instant Model Reuse**: Implemented smart caching to eliminate model loading delays (10-20s saved per file)

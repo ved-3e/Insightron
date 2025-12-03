@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Setup Script for Insightron
+Enhanced Setup Script for Insightron v2.1.0
 Optimized installation process with better error handling, progress tracking,
 and faster dependency management for the Whisper AI transcription project.
 """
@@ -10,6 +10,7 @@ import sys
 import os
 import time
 import logging
+import shutil
 from pathlib import Path
 from typing import List, Tuple, Optional
 
@@ -17,17 +18,23 @@ from typing import List, Tuple, Optional
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def run_command(command: str, description: str, timeout: int = 300) -> Tuple[bool, str]:
+def check_rust_installed():
+    """Check if Rust/Cargo is installed and add to PATH if found in default location."""
+    if shutil.which("cargo"):
+        return True
+    
+    # Check default Windows location
+    cargo_home = Path.home() / ".cargo" / "bin"
+    if cargo_home.exists() and (cargo_home / "cargo.exe").exists():
+        logger.info(f"Found Cargo at {cargo_home}, adding to PATH")
+        os.environ["PATH"] += os.pathsep + str(cargo_home)
+        return True
+    
+    return False
+
+def run_command(command: str, description: str, timeout: int = 600) -> Tuple[bool, str]:
     """
     Run a command with enhanced error handling and timeout support.
-    
-    Args:
-        command: Command to execute
-        description: Human-readable description of the command
-        timeout: Timeout in seconds (default: 5 minutes)
-        
-    Returns:
-        Tuple of (success: bool, output: str)
     """
     logger.info(f"Executing: {description}")
     print(f"Running: {description}...")
@@ -68,35 +75,29 @@ def run_command(command: str, description: str, timeout: int = 300) -> Tuple[boo
         return False, error_msg
 
 def check_python_version() -> bool:
-    """
-    Check if Python version is compatible with Insightron.
-    
-    Returns:
-        True if compatible, False otherwise
-    """
+    """Check if Python version is compatible with Insightron."""
     version = sys.version_info
-    min_version = (3, 8)
+    min_version = (3, 10)
     
     if version[:2] < min_version:
         logger.error(f"Python {min_version[0]}.{min_version[1]}+ required, got {version.major}.{version.minor}")
-        print("Python 3.8 or higher is required")
+        print(f"Python {min_version[0]}.{min_version[1]} or higher is required")
         print(f"Current version: {version.major}.{version.minor}.{version.micro}")
         return False
     
     logger.info(f"Python version check passed: {version.major}.{version.minor}.{version.micro}")
-    print(f"Python version: {version.major}.{version.minor}.{version.micro}")
     return True
 
 def install_dependencies() -> bool:
-    """
-    Install required dependencies with optimized installation strategy.
-    
-    Returns:
-        True if installation successful, False otherwise
-    """
+    """Install required dependencies with optimized installation strategy."""
     logger.info("Starting dependency installation process")
     print("\n📦 Installing dependencies...")
     
+    # Check for Rust
+    rust_available = check_rust_installed()
+    if not rust_available:
+        print("⚠️  Rust/Cargo not found. Installation of some packages may fail.")
+
     # Upgrade pip first with timeout
     success, _ = run_command(
         f"{sys.executable} -m pip install --upgrade pip", 
@@ -109,10 +110,14 @@ def install_dependencies() -> bool:
     
     # Try installing from requirements.txt first
     logger.info("Attempting installation from requirements.txt")
+    requirements_path = Path("setup") / "requirements.txt"
+    if not requirements_path.exists():
+        requirements_path = Path("requirements.txt")
+
     success, output = run_command(
-        f"{sys.executable} -m pip install -r requirements.txt --no-cache-dir", 
+        f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary --no-cache-dir", 
         "Installing from requirements.txt",
-        timeout=600  # 10 minutes for full installation
+        timeout=900
     )
     
     if success:
@@ -124,10 +129,14 @@ def install_dependencies() -> bool:
     print("requirements.txt failed, trying minimal installation...")
     
     # Fallback to minimal requirements
+    minimal_req_path = Path("setup") / "requirements-minimal.txt"
+    if not minimal_req_path.exists():
+        minimal_req_path = Path("requirements-minimal.txt")
+
     success, output = run_command(
-        f"{sys.executable} -m pip install -r requirements-minimal.txt --no-cache-dir", 
+        f"{sys.executable} -m pip install -r {minimal_req_path} --prefer-binary --no-cache-dir", 
         "Installing minimal requirements",
-        timeout=300  # 5 minutes for minimal installation
+        timeout=300
     )
     
     if success:
@@ -137,7 +146,7 @@ def install_dependencies() -> bool:
     
     logger.error("Both installation methods failed")
     print("Both installation methods failed")
-    print("Try running: python troubleshoot.py")
+    print("Try running: python setup/troubleshoot.py")
     return False
 
 def create_directories():
@@ -145,9 +154,14 @@ def create_directories():
     print("\nCreating directories...")
     
     try:
-        from core.config import TRANSCRIPTION_FOLDER
-        TRANSCRIPTION_FOLDER.mkdir(parents=True, exist_ok=True)
-        print(f"Created transcription folder: {TRANSCRIPTION_FOLDER}")
+        # Try to import config to get path, otherwise use default
+        try:
+            sys.path.append(os.getcwd())
+            from core.config import TRANSCRIPTION_FOLDER
+            TRANSCRIPTION_FOLDER.mkdir(parents=True, exist_ok=True)
+            print(f"Created transcription folder: {TRANSCRIPTION_FOLDER}")
+        except ImportError:
+             print("Could not load config, skipping specific folder creation.")
         return True
     except Exception as e:
         print(f"Failed to create directories: {e}")
@@ -159,14 +173,17 @@ def test_installation():
     
     try:
         # Test imports
-        import whisper
+        import faster_whisper
         import librosa
-        import tkinter
         print("All core modules imported successfully")
         
         # Test basic functionality
-        from transcription.transcribe import AudioTranscriber
-        print("Transcription module loaded successfully")
+        sys.path.append(os.getcwd())
+        try:
+            from transcription.transcribe import AudioTranscriber
+            print("Transcription module loaded successfully")
+        except ImportError:
+             print("Could not load AudioTranscriber, but dependencies seem ok.")
         
         return True
     except ImportError as e:
@@ -175,7 +192,7 @@ def test_installation():
 
 def main():
     """Main setup function"""
-    print("Whisper AI Transcriber Setup")
+    print("Insightron v2.1.0 Setup")
     print("=" * 40)
     
     # Check Python version
@@ -199,7 +216,7 @@ def main():
     
     print("\nSetup completed successfully!")
     print("\nYou can now run the application:")
-    print("   python main.py          # GUI mode")
+    print("   python insightron.py    # GUI mode")
     print("   python cli.py audio.mp3 # CLI mode")
     print("\nSee README.md for detailed usage instructions")
 

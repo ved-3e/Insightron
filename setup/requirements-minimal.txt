@@ -1,9 +1,10 @@
-# Insightron v1.0.0 - Minimal Requirements
+# Insightron v2.1.0 - Minimal Requirements
 # Use this if the main requirements.txt fails
 # Optimized for compatibility and faster installation
 
 # Core Whisper AI (latest stable)
 faster-whisper>=1.0.0
+tokenizers>=0.13.3
 
 # Essential audio processing (minimal versions)
 librosa>=0.10.0

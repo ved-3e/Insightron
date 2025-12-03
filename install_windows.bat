@@ -1,6 +1,8 @@
 @echo off
+setlocal EnableDelayedExpansion
+
 echo ================================================
-echo    Insightron v1.0.0 - Windows Installer
+echo    Insightron v2.1.0 - Windows Installer
 echo    Enhanced Whisper AI Transcription Tool
 echo ================================================
 echo.
@@ -9,7 +11,7 @@ REM Check Python version
 python --version
 if %errorlevel% neq 0 (
     echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.8+ from https://python.org
+    echo Please install Python 3.10+ from https://python.org
     pause
     exit /b 1
 )
@@ -17,6 +19,20 @@ if %errorlevel% neq 0 (
 echo.
 echo Installing Insightron dependencies for Windows...
 echo.
+
+REM Check for Rust/Cargo (needed for tokenizers on some systems)
+cargo --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [INFO] Cargo not found in PATH. Checking default install location...
+    if exist "%USERPROFILE%\.cargo\bin\cargo.exe" (
+        echo [INFO] Found Cargo at %USERPROFILE%\.cargo\bin
+        set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
+        echo [INFO] Added Cargo to PATH for this session.
+    ) else (
+        echo [WARNING] Rust/Cargo not found. If installation fails, you may need to install Rust.
+        echo           Visit https://rustup.rs/ to install Rust.
+    )
+)
 
 REM Upgrade pip first
 echo [1/4] Upgrading pip...
@@ -27,8 +43,8 @@ if %errorlevel% neq 0 (
 
 REM Install NumPy with pre-compiled wheel (Windows-specific)
 echo.
-echo [2/4] Installing NumPy with pre-compiled wheel...
-python -m pip install numpy --only-binary=all --upgrade
+echo [2/4] Installing NumPy...
+python -m pip install numpy --prefer-binary --upgrade
 if %errorlevel% neq 0 (
     echo ERROR: NumPy installation failed
     echo Please install Visual Studio Build Tools or try: conda install numpy
@@ -39,15 +55,40 @@ if %errorlevel% neq 0 (
 REM Install other dependencies
 echo.
 echo [3/4] Installing other dependencies...
-python -m pip install -r requirements.txt --no-cache-dir
+python -m pip install -r setup/requirements.txt --prefer-binary --no-cache-dir
 if %errorlevel% neq 0 (
-    echo WARNING: Some dependencies failed, trying minimal installation...
-    python -m pip install -r requirements-minimal.txt --no-cache-dir
-    if %errorlevel% neq 0 (
-        echo ERROR: Installation failed completely
-        echo Please run: python troubleshoot.py
+    echo.
+    echo [WARNING] Standard installation failed.
+    echo           This is often due to missing pre-built wheels for your Python version.
+    echo.
+    echo           Attempting to install 'tokenizers' explicitly...
+    python -m pip install tokenizers --prefer-binary
+    
+    if !errorlevel! neq 0 (
+        echo.
+        echo [ERROR] 'tokenizers' installation failed.
+        echo         This usually means you need to install Rust to build it from source.
+        echo.
+        echo         Please install Rust from: https://rustup.rs/
+        echo         Then run this installer again.
+        echo.
         pause
         exit /b 1
+    )
+
+    echo.
+    echo [INFO] Retrying full installation...
+    python -m pip install -r setup/requirements.txt --prefer-binary --no-cache-dir
+    if !errorlevel! neq 0 (
+        echo.
+        echo [WARNING] Some dependencies failed, trying minimal installation...
+        python -m pip install -r setup/requirements-minimal.txt --prefer-binary --no-cache-dir
+        if !errorlevel! neq 0 (
+            echo ERROR: Installation failed completely
+            echo Please run: python setup/troubleshoot.py
+            pause
+            exit /b 1
+        )
     )
 )
 
@@ -57,7 +98,7 @@ echo [4/4] Verifying installation...
 python -c "import whisper, librosa, numpy; print('All core dependencies working!')"
 if %errorlevel% neq 0 (
     echo WARNING: Some dependencies may not be working correctly
-    echo Run: python troubleshoot.py for diagnostics
+    echo Run: python setup/troubleshoot.py for diagnostics
 )
 
 echo.
@@ -69,7 +110,7 @@ echo You can now run Insightron:
 echo   python insightron.py    # GUI mode (recommended)
 echo   python cli.py audio.mp3  # Command line mode
 echo.
-echo For help: python troubleshoot.py
+echo For help: python setup/troubleshoot.py
 echo Documentation: README.md
 echo.
 pause

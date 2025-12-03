@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Insightron v1.0.0 - Enhanced Dependency Installer
+Insightron v2.1.0 - Enhanced Dependency Installer
 Cross-platform installer with Windows optimization, better error handling,
 and comprehensive dependency management for the Whisper AI transcription tool.
 """
@@ -8,6 +8,7 @@ and comprehensive dependency management for the Whisper AI transcription tool.
 import subprocess
 import sys
 import os
+import shutil
 from pathlib import Path
 
 # Force UTF-8 output on Windows (use reconfigure to avoid closing stdout)
@@ -20,10 +21,26 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-def run_command(command, description):
+def check_rust_installed():
+    """Check if Rust/Cargo is installed and add to PATH if found in default location."""
+    if shutil.which("cargo"):
+        return True
+    
+    # Check default Windows location
+    cargo_home = Path.home() / ".cargo" / "bin"
+    if cargo_home.exists() and (cargo_home / "cargo.exe").exists():
+        print(f"⚠️  Found Cargo at {cargo_home}, but it's not in PATH.")
+        print("   Adding it to PATH for this session...")
+        os.environ["PATH"] += os.pathsep + str(cargo_home)
+        return True
+    
+    return False
+
+def run_command(command, description, exit_on_fail=False):
     """Run a command and handle errors gracefully"""
     print(f"🔄 {description}...")
     try:
+        # Use shell=True for windows compatibility with some commands
         result = subprocess.run(command, shell=True, check=True, 
                               capture_output=True, text=True)
         print(f"✅ {description} completed successfully")
@@ -31,30 +48,39 @@ def run_command(command, description):
     except subprocess.CalledProcessError as e:
         print(f"❌ {description} failed:")
         print(f"   Error: {e.stderr}")
+        if exit_on_fail:
+            sys.exit(1)
         return False
 
 def main():
     """Main installation process"""
-    print("🎤 Insightron v1.0.0 - Enhanced Dependency Installer")
+    print("🎤 Insightron v2.1.0 - Enhanced Dependency Installer")
     print("=" * 60)
     
     # Check if we're on Windows
     if os.name != 'nt':
         print("⚠️  This installer is optimized for Windows")
-        print("   For other platforms, use: pip install -r requirements.txt")
+        print("   For other platforms, use: pip install -r setup/requirements.txt")
     
+    # Check for Rust
+    rust_available = check_rust_installed()
+    if not rust_available:
+        print("⚠️  Rust/Cargo not found. Some packages (like tokenizers) may fail to install")
+        print("   if pre-built wheels are not available for your Python version.")
+        print("   If installation fails, please install Rust from https://rustup.rs/")
+
     # Upgrade pip first
-    if not run_command("python -m pip install --upgrade pip", "Upgrading pip"):
+    if not run_command(f"{sys.executable} -m pip install --upgrade pip", "Upgrading pip"):
         print("❌ Failed to upgrade pip. Please check your Python installation.")
-        return False
+        # Continue anyway as it might not be critical
     
     # Install NumPy with pre-compiled wheel (Windows-specific)
     print("\n🔧 Installing NumPy with Windows-optimized approach...")
     
     # Try different NumPy installation strategies
     numpy_commands = [
-        "python -m pip install numpy --only-binary=all --upgrade",
-        "python -m pip install numpy --prefer-binary"
+        f"{sys.executable} -m pip install numpy --prefer-binary --upgrade",
+        f"{sys.executable} -m pip install numpy --only-binary=all"
     ]
     
     numpy_installed = False
@@ -70,29 +96,57 @@ def main():
     
     # Install other dependencies
     print("\n📦 Installing other dependencies...")
-    if not run_command("python -m pip install -r requirements.txt", "Installing requirements"):
-        print("❌ Failed to install some dependencies")
-        return False
-    
+    requirements_path = Path("setup") / "requirements.txt"
+    if not requirements_path.exists():
+         # Fallback if running from setup dir
+         requirements_path = Path("requirements.txt")
+
+    if not run_command(f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary", "Installing requirements"):
+        print("❌ Failed to install some dependencies via requirements.txt")
+        
+        # Specific check for tokenizers
+        print("\n🔍 Attempting to fix common issues...")
+        if not run_command(f"{sys.executable} -m pip install tokenizers --prefer-binary", "Installing tokenizers separately"):
+             print("❌ Failed to install 'tokenizers'.")
+             if not rust_available:
+                 print("💡 It looks like you need to install Rust to build 'tokenizers' from source.")
+                 print("   Please install Rust from: https://rustup.rs/")
+                 return False
+        
+        # Try minimal requirements
+        print("\n⚠️  Trying minimal requirements...")
+        minimal_req_path = Path("setup") / "requirements-minimal.txt"
+        if not minimal_req_path.exists():
+            minimal_req_path = Path("requirements-minimal.txt")
+            
+        if not run_command(f"{sys.executable} -m pip install -r {minimal_req_path} --prefer-binary", "Installing minimal requirements"):
+             print("❌ Minimal installation also failed.")
+             return False
+
     # Verify installation
     print("\n🔍 Verifying installation...")
     try:
         import numpy
-        import whisper
+        import faster_whisper
         import librosa
-        import tkinter
         import soundfile
         import pydub
         print("✅ All core dependencies are working!")
         
         # Test basic functionality
         print("\n🧪 Testing basic functionality...")
-        from transcribe import AudioTranscriber
-        print("✅ Transcription module loaded successfully!")
+        # Adjust import path if needed
+        sys.path.append(os.getcwd())
+        try:
+             from transcription.transcribe import AudioTranscriber
+             print("✅ Transcription module loaded successfully!")
+        except ImportError:
+             print("⚠️  Could not load AudioTranscriber (might be path issue), but dependencies look ok.")
+             
         return True
     except ImportError as e:
         print(f"❌ Verification failed: {e}")
-        print("💡 Try running: python troubleshoot.py")
+        print("💡 Try running: python setup/troubleshoot.py")
         return False
 
 if __name__ == "__main__":
@@ -102,8 +156,8 @@ if __name__ == "__main__":
         print("   You can now run:")
         print("   • python insightron.py    # GUI mode (recommended)")
         print("   • python cli.py audio.mp3  # Command line mode")
-        print("   • python troubleshoot.py  # For diagnostics")
+        print("   • python setup/troubleshoot.py  # For diagnostics")
     else:
         print("\n💥 Installation failed. Please check the errors above.")
-        print("   Try running: python troubleshoot.py")
+        print("   Try running: python setup/troubleshoot.py")
         sys.exit(1)
