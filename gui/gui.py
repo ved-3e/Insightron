@@ -625,7 +625,7 @@ class InsightronGUI:
         ctk.CTkOptionMenu(
             fmt_frame,
             variable=self.formatting_var,
-            values=["auto", "paragraphs", "minimal"],
+            values=["auto", "paragraphs", "minimal", "bullets"],
             font=('Segoe UI', 14, 'bold'),
             dropdown_font=('Segoe UI', 13),
             corner_radius=8,

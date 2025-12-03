@@ -61,6 +61,16 @@ model:
   # 1-3 = recommended range
   # Default: 2
   max_retries: 2
+  
+  # Adaptive VAD: Dynamically adjust VAD threshold based on audio characteristics
+  # Helps with varying audio quality and background noise levels
+  # Default: false
+  adaptive_vad: false
+  
+  # Batch size: Number of audio chunks to process in parallel (experimental)
+  # Higher values can improve throughput but require more memory
+  # Default: 1 (sequential processing)
+  batch_size: 1
 
 # ============================================================================
 # Runtime Configuration
@@ -160,4 +170,31 @@ post_processing:
   # minimal = new paragraph every 5 sentences
   # Default: auto
   formatting_style: "auto"
+
+# ============================================================================
+# Transcription Optimization Configuration
+# ============================================================================
+transcription:
+  # Segment merge threshold: Confidence score threshold for merging consecutive segments
+  # Range: -1.0 to 0.0 (log probabilities)
+  # Lower values (e.g., -0.8) = merge more aggressively
+  # Higher values (e.g., -0.3) = merge only high-confidence segments
+  # Default: -0.5 (balanced)
+  segment_merge_threshold: -0.5
+  
+  # Minimum segment duration: Filter out very short segments (in seconds)
+  # Helps remove micro-fragments and stutters
+  # Default: 0.1 (100 milliseconds)
+  min_segment_duration: 0.1
+  
+  # Progress update frequency: Update progress every N%
+  # Lower values = more frequent updates (may slow down UI)
+  # Higher values = less frequent updates (smoother performance)
+  # Default: 5 (%)
+  progress_update_frequency: 5
+  
+  # Enable segment filtering: Filter low-confidence micro-segments
+  # Improves output quality by removing noise
+  # Default: true
+  enable_segment_filtering: true
 

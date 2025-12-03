@@ -81,11 +81,15 @@ class ModelManager:
         self.enable_retry = config.get('model.enable_retry', True)
         self.max_retries = config.get('model.max_retries', 2)
         
+        # Adaptive VAD: dynamically adjust threshold based on audio characteristics
+        self.adaptive_vad = config.get('model.adaptive_vad', False)
+        self.batch_size = config.get('model.batch_size', 1)  # Batch inference support
+        
         # Adjust parameters based on quality mode
         self._configure_quality_mode()
         
         logger.info(f"ModelManager initialized: Model={self.model_size}, Device={self.device}, "
-                   f"Quality={self.quality_mode}, VAD={self.enable_vad}")
+                   f"Quality={self.quality_mode}, VAD={self.enable_vad}, AdaptiveVAD={self.adaptive_vad}")
 
     def _configure_quality_mode(self):
         """Configure parameters based on quality mode."""

@@ -31,7 +31,8 @@ class TextFormatter:
             "meanwhile", "additionally", "furthermore", "moreover",
             "on the other hand", "in contrast", "similarly",
             "first", "second", "third", "finally", "lastly",
-            "in conclusion", "to summarize", "overall"
+            "in conclusion", "to summarize", "overall",
+            "next", "then", "after that", "subsequently"
         }
         
         # Transitional phrases that often start new thoughts (converted to sets)
@@ -39,21 +40,28 @@ class TextFormatter:
             "what i'm experiencing", "what i feel", "what i think",
             "the way i see it", "from my perspective", "in my view",
             "i notice that", "i realize that", "i understand that",
-            "i believe that", "i think that", "i feel that"
+            "i believe that", "i think that", "i feel that",
+            "it seems to me", "my take is"
         }
         
         # Common filler words and repetitions to clean up (converted to sets)
         self.filler_words: Set[str] = {
             "um", "uh", "ah", "er", "like", "you know", "i mean",
             "basically", "actually", "literally", "honestly",
-            "so", "and so", "and then", "and also", "and"
+            "so", "and so", "and then", "and also", "and",
+            "sort of", "kind of", "you see", "right"
         }
         
         # Pre-compiled regex patterns for better performance
         self._whitespace_pattern = re.compile(r'\s+')
         self._punctuation_spacing_pattern = re.compile(r'\s+([,.!?;:])')
         self._punctuation_after_pattern = re.compile(r'([,.!?;:])([a-zA-Z])')
-        self._sentence_split_pattern = re.compile(r'[.!?]+')
+        
+        # Improved sentence splitting pattern to handle abbreviations
+        # Negative lookbehind for common abbreviations
+        self._sentence_split_pattern = re.compile(
+            r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!)\s'
+        )
         
         # Common transcription fixes (pre-compiled for performance)
         self._transcription_fixes = [
@@ -250,9 +258,9 @@ class TextFormatter:
         return paragraph_breaks
 
     def _split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences"""
-        # Simple sentence splitting - can be enhanced with more sophisticated NLP
-        sentences = re.split(r'[.!?]+', text)
+        """Split text into sentences using improved regex"""
+        # Improved sentence splitting that respects abbreviations
+        sentences = self._sentence_split_pattern.split(text)
         sentences = [s.strip() for s in sentences if s.strip()]
         return sentences
 
@@ -345,6 +353,46 @@ class TextFormatter:
         # Optimized: single join operation for final result
         return '\n\n'.join(paragraphs)
 
+    def format_as_bullets(self, text: str) -> str:
+        """Format text as a bulleted list based on paragraph breaks"""
+        text = self.clean_text(text)
+        text = self.add_punctuation(text)
+        sentences = self._split_into_sentences(text)
+        
+        if not sentences:
+            return text
+            
+        paragraph_breaks = self.detect_paragraph_breaks(text)
+        bullets = []
+        current_bullet = []
+        
+        for i, sentence in enumerate(sentences):
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            # Capitalize
+            sentence = sentence[0].upper() + sentence[1:] if len(sentence) > 1 else sentence.upper()
+            
+            # Ensure punctuation
+            if not sentence.endswith(('.', '!', '?', ':', ';', ',')):
+                sentence = sentence + '.'
+                
+            current_bullet.append(sentence)
+            
+            # Check if we should start a new bullet
+            # Break if it's a detected paragraph break or the last sentence
+            should_break = (
+                i + 1 in paragraph_breaks or # Check if NEXT sentence starts a new paragraph
+                i == len(sentences) - 1
+            )
+            
+            if should_break and current_bullet:
+                bullets.append("* " + " ".join(current_bullet))
+                current_bullet = []
+                
+        return '\n'.join(bullets)
+
 def format_transcript(text: str, style: str = "auto") -> str:
     """Convenience function to format transcript text"""
     formatter = TextFormatter()
@@ -355,5 +403,7 @@ def format_transcript(text: str, style: str = "auto") -> str:
         return formatter.format_with_custom_structure(text, max_sentences_per_paragraph=3)
     elif style == "minimal":
         return formatter.format_with_custom_structure(text, max_sentences_per_paragraph=5)
+    elif style == "bullets":
+        return formatter.format_as_bullets(text)
     else:
         return formatter.format_text(text)

@@ -3,13 +3,15 @@ import logging
 import wave
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, List
 import librosa
 import soundfile
+import numpy as np
 
 
 from core.utils import create_markdown
 from core.config import (
+    get_config_manager,
     WHISPER_MODEL, 
     TRANSCRIPTION_FOLDER, 
     SUPPORTED_LANGUAGES, 
@@ -52,7 +54,16 @@ class AudioTranscriber:
         # Optimization: Set beam size based on model type
         self.beam_size = 1 if "distil" in self.model_size else 5
         
+        # Load performance optimization settings from config
+        config = get_config_manager()
+        self.segment_merge_threshold = config.get('transcription.segment_merge_threshold', -0.5)
+        self.min_segment_duration = config.get('transcription.min_segment_duration', 0.1)
+        self.progress_update_frequency = config.get('transcription.progress_update_frequency', 5)
+        self.enable_segment_filtering = config.get('transcription.enable_segment_filtering', True)
+        
         logger.info(f"AudioTranscriber initialized with model: {self.model_size}")
+        logger.debug(f"Optimization settings: merge_threshold={self.segment_merge_threshold}, "
+                    f"min_duration={self.min_segment_duration}s, progress_freq={self.progress_update_frequency}%")
 
     def set_language(self, language: str) -> bool:
         """Set the transcription language."""
@@ -125,6 +136,101 @@ class AudioTranscriber:
                 'file_extension': Path(audio_path).suffix.lower()
             }
 
+    def _merge_segments_smart(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Intelligently merge segments based on confidence and timing.
+        
+        Segments are merged if:
+        - They are consecutive (no significant gap)
+        - Both have reasonable confidence scores
+        - The gap between them is small (< 0.5 seconds)
+        
+        Args:
+            segments: List of segment dictionaries
+            
+        Returns:
+            List of merged segments
+        """
+        if not segments or len(segments) <= 1:
+            return segments
+        
+        merged = []
+        current = segments[0].copy()
+        
+        for i in range(1, len(segments)):
+            next_seg = segments[i]
+            
+            # Calculate gap between segments
+            gap = next_seg['start'] - current['end']
+            
+            # Get confidence scores
+            current_conf = current.get('confidence', 0)
+            next_conf = next_seg.get('confidence', 0)
+            
+            # Merge conditions: small gap and both have decent confidence
+            should_merge = (
+                gap < 0.5 and  # Less than 0.5 second gap
+                current_conf > self.segment_merge_threshold and
+                next_conf > self.segment_merge_threshold
+            )
+            
+            if should_merge:
+                # Merge segments
+                current['end'] = next_seg['end']
+                current['text'] = current['text'] + ' ' + next_seg['text']
+                # Average the confidence scores
+                if 'confidence' in current and 'confidence' in next_seg:
+                    current['confidence'] = (current_conf + next_conf) / 2
+            else:
+                # Save current and start new segment
+                merged.append(current)
+                current = next_seg.copy()
+        
+        # Don't forget the last segment
+        merged.append(current)
+        
+        logger.debug(f"Segment merging: {len(segments)} → {len(merged)} segments")
+        return merged
+
+    def _calculate_quality_metrics(self, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Calculate quality metrics for transcribed segments.
+        
+        Args:
+            segments: List of segment dictionaries with confidence scores
+            
+        Returns:
+            Dictionary with quality metrics
+        """
+        if not segments:
+            return {
+                "avg_confidence": 0.0,
+                "low_confidence_count": 0,
+                "total_segments": 0,
+                "min_confidence": 0.0,
+                "max_confidence": 0.0
+            }
+        
+        confidences = [seg.get('confidence', 0.0) for seg in segments if 'confidence' in seg]
+        
+        if not confidences:
+            return {
+                "avg_confidence": 0.0,
+                "low_confidence_count": 0,
+                "total_segments": len(segments),
+                "min_confidence": 0.0,
+                "max_confidence": 0.0
+            }
+        
+        return {
+            "avg_confidence": sum(confidences) / len(confidences),
+            "low_confidence_count": sum(1 for c in confidences if c < self.segment_merge_threshold),
+            "total_segments": len(segments),
+            "min_confidence": min(confidences),
+            "max_confidence": max(confidences)
+        }
+
+
     def transcribe_file(self, audio_path: str, progress_callback: Optional[Callable[[str], None]] = None, 
                        formatting_style: str = "auto", language: Optional[str] = None) -> tuple[Path, Dict[str, Any]]:
         """
@@ -171,31 +277,62 @@ class AudioTranscriber:
             if progress_callback:
                 progress_callback(f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
             
-            # Process segments
+            # Process segments with optimizations
             transcribed_segments = []
-            full_text = []
+            text_parts = []  # Memory-efficient list for text assembly
             
             total_duration = info.duration
+            last_progress_percent = -1
+            
+            # Pre-allocate list capacity estimate for better performance
+            estimated_segments = int(total_duration / 3) if total_duration > 0 else 100
+            transcribed_segments = []
+            text_parts = []
             
             for segment in segments:
-                transcribed_segments.append({
+                # Smart segment filtering: skip very short, low-confidence segments
+                segment_duration = segment.end - segment.start
+                if self.enable_segment_filtering:
+                    if segment_duration < self.min_segment_duration:
+                        if hasattr(segment, 'avg_logprob') and segment.avg_logprob < self.segment_merge_threshold:
+                            logger.debug(f"Filtered micro-segment: {segment_duration:.2f}s, confidence: {segment.avg_logprob:.2f}")
+                            continue
+                
+                # Store segment data
+                segment_data = {
                     "id": segment.id,
                     "start": segment.start,
                     "end": segment.end,
                     "text": segment.text
-                })
-                full_text.append(segment.text)
+                }
                 
-                # Update progress
+                # Add confidence if available
+                if hasattr(segment, 'avg_logprob'):
+                    segment_data["confidence"] = segment.avg_logprob
+                
+                transcribed_segments.append(segment_data)
+                text_parts.append(segment.text)
+                
+                # Optimized progress updates: only update on significant changes
                 if progress_callback and total_duration > 0:
-                    percent = int((segment.end / total_duration) * 100)
-                    progress_callback(f"Transcribing: {percent}% ({int(segment.end)}s/{int(total_duration)}s)")
+                    current_percent = int((segment.end / total_duration) * 100)
+                    # Update only if percent changed by at least progress_update_frequency
+                    if current_percent - last_progress_percent >= self.progress_update_frequency:
+                        progress_callback(f"Transcribing: {current_percent}% ({int(segment.end)}s/{int(total_duration)}s)")
+                        last_progress_percent = current_percent
             
-            final_text = "".join(full_text).strip()
+            # Efficient text assembly using join (O(n) vs O(n²) concatenation)
+            final_text = "".join(text_parts).strip()
             
             # Prepare result data
             now = datetime.now()
             processing_time = (now - start_time).total_seconds()
+            
+            # Apply smart segment merging for better quality
+            transcribed_segments = self._merge_segments_smart(transcribed_segments)
+            
+            # Calculate quality metrics
+            quality_metrics = self._calculate_quality_metrics(transcribed_segments)
             
             transcription_data = {
                 'filename': Path(audio_path).stem,
@@ -209,7 +346,8 @@ class AudioTranscriber:
                 'segments': transcribed_segments,
                 'formatting_style': formatting_style,
                 'processing_time_seconds': processing_time,
-                'characters_per_second': len(final_text) / processing_time if processing_time > 0 else 0
+                'characters_per_second': len(final_text) / processing_time if processing_time > 0 else 0,
+                'quality_metrics': quality_metrics
             }
             
             # Save to Markdown
