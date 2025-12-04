@@ -7,6 +7,28 @@ All notable changes to Insightron will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-12-04
+
+### Added
+- ✅ **Smart Segment Merging**: Confidence-based merging of micro-segments to improve transcription coherence and reduce fragmentation.
+- ✅ **Adaptive VAD**: Advanced Voice Activity Detection configuration for better speech isolation in noisy environments.
+- ✅ **Robust Error Handling**: Retry mechanism with fallback strategies for transcription failures to ensure reliability.
+- ✅ **Bullets Formatting**: New "Bullets" text formatting mode that organizes transcripts into bulleted lists based on paragraph breaks.
+- ✅ **GUI Bullets Option**: "Bullets" formatting is now selectable directly from the GUI dropdown.
+- ✅ **Configurable Optimizations**: New settings in `config.yaml` for segment merging, VAD parameters, and retry logic.
+
+### Changed
+- 🔄 **Installation**: Improved `install_windows.bat` and dependency checks to fix issues with Rust, Visual Studio Build Tools, and `tokenizers`.
+- 🔄 **Dependencies**: Updated `requirements.txt` to use `faster-whisper>=1.2.0` and compatible `tokenizers` versions.
+- 🔄 **Text Formatter**: Enhanced sentence splitting to better handle abbreviations and improved paragraph detection.
+- 🔄 **Runtime Checks**: `insightron.py` now correctly verifies `faster-whisper` presence instead of `openai-whisper`.
+- 🔄 **Refactoring**: Replaced `pkg_resources` with `importlib.metadata` for faster and warning-free version checking.
+
+### Fixed
+- 🐛 **Realtime Transcription**: Resolved "auto" language code error and GUI note saving issues.
+- 🐛 **Batch Processing**: Fixed `ThreadPoolExecutor` mocking in tests and ensured robust batch processing.
+- 🐛 **Installation Scripts**: Corrected dependency verification logic in setup scripts to prevent false negatives.
+
 ## [2.0.0] - 2025-12-03
 
 ### Added
