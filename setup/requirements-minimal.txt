@@ -4,7 +4,7 @@
 
 # Core Whisper AI (latest stable)
 faster-whisper>=1.0.0
-tokenizers>=0.13.3
+tokenizers>=0.19.1
 
 # Essential audio processing (minimal versions)
 librosa>=0.10.0

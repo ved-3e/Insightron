@@ -9,7 +9,7 @@ echo.
 
 REM Check Python version
 python --version
-for /f "tokens=2 delims=." %%I in ('python -c "import sys; print(sys.version_info.minor)"') do set PYTHON_MINOR=%%I
+for /f %%I in ('python -c "import sys; print(sys.version_info.minor)"') do set PYTHON_MINOR=%%I
 
 if %PYTHON_MINOR% gtr 12 (
     echo.
@@ -109,10 +109,18 @@ if %errorlevel% neq 0 (
 REM Verify installation
 echo.
 echo [4/4] Verifying installation...
-python -c "import whisper, librosa, numpy; print('All core dependencies working!')"
-if %errorlevel% neq 0 (
-    echo WARNING: Some dependencies may not be working correctly
-    echo Run: python setup/troubleshoot.py for diagnostics
+python -c "import faster_whisper, librosa, numpy, customtkinter, sounddevice; print('All core dependencies working!')"
+if errorlevel 1 (
+    echo.
+    echo [WARNING] Verification failed!
+    echo           This might be due to a missing dependency or an incompatibility.
+    echo.
+    echo           Common fixes:
+    echo           1. Install Visual Studio Build Tools (for C++ compilation)
+    echo           2. Install Rust (for tokenizers): https://rustup.rs/
+    echo           3. Ensure you are using Python 3.10 - 3.12
+    echo.
+    echo           Run: python setup/troubleshoot.py for detailed diagnostics.
 )
 
 echo.

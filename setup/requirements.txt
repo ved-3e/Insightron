@@ -8,7 +8,7 @@ faster-whisper>=1.2.0
 
 # Explicitly list tokenizers to ensure we get a compatible version
 # or trigger the Rust build requirement clearly
-tokenizers>=0.13.3
+tokenizers>=0.19.1
 
 # Essential audio processing (optimized versions for stability)
 librosa>=0.10.1

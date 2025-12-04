@@ -36,7 +36,7 @@ try:
 except ImportError as e:
     print(f"Error importing required modules: {e}")
     print("Please install the required dependencies:")
-    print("pip install -r requirements.txt")
+    print("pip install -r setup/requirements.txt")
     sys.exit(1)
 
 def check_dependencies():
@@ -44,9 +44,9 @@ def check_dependencies():
     missing_deps = []
     
     try:
-        import whisper
+        import faster_whisper
     except ImportError:
-        missing_deps.append("openai-whisper")
+        missing_deps.append("faster-whisper")
     
     try:
         import librosa
@@ -63,7 +63,7 @@ def check_dependencies():
         for dep in missing_deps:
             print(f"   - {dep}")
         print("\nPlease install them using:")
-        print("pip install -r requirements.txt")
+        print("pip install -r setup/requirements.txt")
         return False
     
     return True

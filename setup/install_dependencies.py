@@ -141,6 +141,8 @@ def main():
         import librosa
         import soundfile
         import pydub
+        import customtkinter
+        import sounddevice
         print("✅ All core dependencies are working!")
         
         # Test basic functionality
