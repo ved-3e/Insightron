@@ -121,4 +121,3 @@ class QualityMetricsCalculator:
             'quality_tier': 'unknown',
             'confidence_std': 0
         }
-
