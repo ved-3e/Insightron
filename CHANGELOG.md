@@ -7,6 +7,36 @@ All notable changes to Insightron will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-12-04
+
+### Added
+- ✅ **Adaptive Segment Merging Algorithm**: Machine-learned gap thresholds that adapt to speaker cadence (fast/slow/normal speech patterns) for more accurate segment merging
+- ✅ **Segment Analyzer Module**: Advanced statistical analysis of segment patterns with speech rate detection and adaptive threshold calculation
+- ✅ **Enhanced Quality Metrics Calculator**: Comprehensive quality metrics including weighted confidence averages, percentile analysis (p25, p50, p75), quality degradation detection, and quality tiers (excellent/good/acceptable/poor)
+- ✅ **Batch State Manager**: JSON-based state persistence for batch processing with resume capabilities after crashes or cancellations
+- ✅ **Batch Resume & Recovery**: Enhanced batch processor with automatic retry mechanism (configurable max retries) and resume from previous state
+- ✅ **Event-Driven Progress Tracker**: Milestone-based progress tracking system with segment-level events and ETA calculations
+- ✅ **Memory Monitor Module**: Real-time memory usage tracking with OOM prevention for batch operations (requires psutil)
+- ✅ **Progress Events**: Event types include STARTED, SEGMENT_COMPLETED, MILESTONE, QUALITY_WARNING, ERROR, and COMPLETED
+
+### Changed
+- 🔄 **Segment Merging**: Replaced static 0.5s threshold with adaptive algorithm that considers speech rate and gap variability
+- 🔄 **Quality Metrics**: Enhanced from simple averaging to weighted scoring by segment duration with degradation detection
+- 🔄 **Batch Processing**: Added resume capability with state persistence and automatic retry for failed files
+- 🔄 **Code Quality**: Centralized quality metrics calculation in QualityMetricsCalculator to reduce duplication between AudioTranscriber and ModelManager
+- 🔄 **Progress Updates**: Replaced arbitrary 5% intervals with meaningful milestone events (25%, 50%, 75%, 100%)
+
+### Technical Details
+- Added `transcription/segment_analyzer.py` for adaptive segment analysis
+- Added `transcription/quality_metrics.py` for comprehensive quality metrics
+- Added `transcription/batch_state_manager.py` for batch state persistence
+- Added `transcription/progress_tracker.py` for event-driven progress tracking
+- Added `core/memory_monitor.py` for memory usage monitoring
+- Updated `transcription/transcribe.py` to use adaptive merging and enhanced quality metrics
+- Updated `transcription/batch_processor.py` with resume and retry capabilities
+- Updated `core/model_manager.py` to use QualityMetricsCalculator for consistency
+- Added `psutil>=5.9.0` to requirements.txt for memory monitoring
+
 ## [2.1.0] - 2025-12-04
 
 ### Added

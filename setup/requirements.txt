@@ -39,3 +39,6 @@ packaging>=23.0
 
 # Realtime Audio Capture
 sounddevice>=0.4.6
+
+# Memory Monitoring
+psutil>=5.9.0

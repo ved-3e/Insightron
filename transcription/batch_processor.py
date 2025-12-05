@@ -24,7 +24,9 @@ if sys.platform == "win32":
         pass
 
 from transcription.transcribe import AudioTranscriber
+from transcription.batch_state_manager import BatchState, FileStatus
 from core.config import WHISPER_MODEL, DEFAULT_LANGUAGE, get_config
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -108,16 +110,40 @@ class BatchTranscriber:
         self,
         audio_files: List[str],
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
-        formatting_style: str = "auto"
+        formatting_style: str = "auto",
+        batch_state: Optional[BatchState] = None,
+        max_retries: int = 2
     ) -> Dict[str, Any]:
-        """Transcribe multiple audio files in batch."""
+        """
+        Transcribe multiple audio files in batch with resume and retry support.
+        
+        Args:
+            audio_files: List of audio file paths
+            progress_callback: Optional callback for progress updates
+            formatting_style: Text formatting style
+            batch_state: Optional BatchState for resume capability
+            max_retries: Maximum retry attempts per file
+        """
         start_time = datetime.now()
+        
+        # Initialize or use provided batch state
+        if batch_state is None:
+            batch_id = str(uuid.uuid4())[:8] + "_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+            batch_state = BatchState(batch_id)
+            # Register all files
+            for audio_file in audio_files:
+                batch_state.add_file(audio_file)
+        else:
+            # Resume mode: only process pending files
+            audio_files = batch_state.get_pending_files()
+            logger.info(f"Resuming batch: {len(audio_files)} files remaining")
+        
         results = {
             'successful': [],
             'failed': [],
-            'total_files': len(audio_files),
-            'completed': 0,
-            'failed_count': 0
+            'total_files': batch_state.state['statistics']['total'],
+            'completed': batch_state.state['statistics']['completed'],
+            'failed_count': batch_state.state['statistics']['failed']
         }
         
         logger.info(f"Starting batch transcription of {len(audio_files)} files with {self.max_workers} workers")
@@ -148,12 +174,21 @@ class BatchTranscriber:
             
             for future in as_completed(future_to_file):
                 audio_file = future_to_file[future]
+                batch_state.set_file_status(audio_file, FileStatus.IN_PROGRESS)
+                
                 try:
                     result = future.result()
                     
                     if result.get('status') == 'failed':
                         raise Exception(result.get('error', 'Unknown error'))
-                        
+                    
+                    # Success
+                    batch_state.set_file_status(
+                        audio_file, 
+                        FileStatus.SUCCESS,
+                        output_path=result.get('output_path')
+                    )
+                    
                     results['successful'].append({
                         'file': audio_file,
                         'output': result['output_path'],
@@ -171,18 +206,60 @@ class BatchTranscriber:
                     logger.info(f"✓ Completed: {Path(audio_file).name}")
                     
                 except Exception as e:
-                    results['failed'].append({'file': audio_file, 'error': str(e)})
-                    results['failed_count'] += 1
-                    logger.error(f"✗ Failed: {Path(audio_file).name} - {e}")
+                    error_msg = str(e)
+                    file_state = batch_state.state['files'].get(str(Path(audio_file).resolve()), {})
+                    attempts = file_state.get('attempts', 0)
+                    
+                    if attempts < max_retries:
+                        # Retry
+                        logger.warning(f"Retrying {Path(audio_file).name} (attempt {attempts + 1}/{max_retries})")
+                        batch_state.set_file_status(
+                            audio_file, 
+                            FileStatus.FAILED,
+                            last_error=error_msg
+                        )
+                        # Re-queue for retry
+                        if self.use_multiprocessing:
+                            future = executor.submit(
+                                transcribe_single_file_worker,
+                                audio_file,
+                                self.model_size,
+                                self.language,
+                                formatting_style
+                            )
+                        else:
+                            future = executor.submit(
+                                self._transcribe_single_file_threaded,
+                                audio_file,
+                                formatting_style
+                            )
+                        future_to_file[future] = audio_file
+                    else:
+                        # Max retries reached
+                        batch_state.set_file_status(
+                            audio_file, 
+                            FileStatus.FAILED,
+                            last_error=error_msg
+                        )
+                        results['failed'].append({'file': audio_file, 'error': error_msg})
+                        results['failed_count'] += 1
+                        logger.error(f"✗ Failed: {Path(audio_file).name} - {error_msg}")
         
         # Statistics
         end_time = datetime.now()
         total_time = (end_time - start_time).total_seconds()
+        batch_stats = batch_state.get_statistics()
         
         results['statistics'] = {
             'total_time_seconds': total_time,
-            'throughput': results['completed'] / total_time if total_time > 0 else 0
+            'throughput': results['completed'] / total_time if total_time > 0 else 0,
+            'success_rate': batch_stats['success_rate'],
+            'batch_id': batch_state.batch_id
         }
+        
+        # Cleanup state if all files completed successfully
+        if batch_stats['failed'] == 0 and batch_stats['pending'] == 0:
+            batch_state.cleanup()
         
         return results
     
@@ -214,9 +291,18 @@ def batch_transcribe_files(
     max_workers: Optional[int] = None,
     use_multiprocessing: bool = True,
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    transcriber: Optional[AudioTranscriber] = None
+    transcriber: Optional[AudioTranscriber] = None,
+    enable_resume: bool = True,
+    max_retries: int = 2
 ) -> Dict[str, Any]:
-    """Convenience function for batch transcription."""
+    """
+    Enhanced batch transcription with resume and retry capabilities.
+    
+    Args:
+        enable_resume: Enable resume from previous failed batch
+        max_retries: Maximum retry attempts per file
+        ...existing args...
+    """
     batch_transcriber = BatchTranscriber(
         model_size=model_size,
         language=language,
@@ -225,9 +311,18 @@ def batch_transcribe_files(
         transcriber=transcriber
     )
     
+    batch_state = None
+    if enable_resume:
+        batch_id = str(uuid.uuid4())[:8] + "_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+        batch_state = BatchState(batch_id)
+        for audio_file in audio_files:
+            batch_state.add_file(audio_file)
+    
     return batch_transcriber.transcribe_batch(
         audio_files,
-        progress_callback=progress_callback
+        progress_callback=progress_callback,
+        batch_state=batch_state,
+        max_retries=max_retries
     )
 
 if __name__ == "__main__":

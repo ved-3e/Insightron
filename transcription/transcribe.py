@@ -19,6 +19,8 @@ from core.config import (
     ENSURE_UTF8_ENCODING, 
     OUTPUT_ENCODING
 )
+from transcription.segment_analyzer import SegmentAnalyzer
+from transcription.quality_metrics import QualityMetricsCalculator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -61,7 +63,12 @@ class AudioTranscriber:
         self.progress_update_frequency = config.get('transcription.progress_update_frequency', 5)
         self.enable_segment_filtering = config.get('transcription.enable_segment_filtering', True)
         
+        # Add segment analyzer and quality metrics calculator
+        self.segment_analyzer = SegmentAnalyzer()
+        self.quality_metrics_calculator = QualityMetricsCalculator()
+        
         logger.info(f"AudioTranscriber initialized with model: {self.model_size}")
+        logger.info(f"AudioTranscriber initialized with adaptive segment merging")
         logger.debug(f"Optimization settings: merge_threshold={self.segment_merge_threshold}, "
                     f"min_duration={self.min_segment_duration}s, progress_freq={self.progress_update_frequency}%")
 
@@ -136,17 +143,17 @@ class AudioTranscriber:
                 'file_extension': Path(audio_path).suffix.lower()
             }
 
-    def _merge_segments_smart(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _merge_segments_adaptive(
+        self, 
+        segments: List[Dict[str, Any]], 
+        analysis: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
-        Intelligently merge segments based on confidence and timing.
-        
-        Segments are merged if:
-        - They are consecutive (no significant gap)
-        - Both have reasonable confidence scores
-        - The gap between them is small (< 0.5 seconds)
+        Intelligently merge segments using adaptive thresholds.
         
         Args:
             segments: List of segment dictionaries
+            analysis: Segment analysis results with adaptive parameters
             
         Returns:
             List of merged segments
@@ -160,74 +167,76 @@ class AudioTranscriber:
         for i in range(1, len(segments)):
             next_seg = segments[i]
             
-            # Calculate gap between segments
-            gap = next_seg['start'] - current['end']
-            
-            # Get confidence scores
-            current_conf = current.get('confidence', 0)
-            next_conf = next_seg.get('confidence', 0)
-            
-            # Merge conditions: small gap and both have decent confidence
-            should_merge = (
-                gap < 0.5 and  # Less than 0.5 second gap
-                current_conf > self.segment_merge_threshold and
-                next_conf > self.segment_merge_threshold
+            # Get merge decision
+            should_merge, reason = self.segment_analyzer.should_merge_segments(
+                current, next_seg, analysis
             )
             
             if should_merge:
                 # Merge segments
                 current['end'] = next_seg['end']
                 current['text'] = current['text'] + ' ' + next_seg['text']
-                # Average the confidence scores
+                
+                # Weighted confidence average by duration
                 if 'confidence' in current and 'confidence' in next_seg:
-                    current['confidence'] = (current_conf + next_conf) / 2
+                    dur_current = current.get('_original_duration', current['end'] - current['start'])
+                    dur_next = next_seg.get('_original_duration', next_seg['end'] - next_seg['start'])
+                    total_dur = dur_current + dur_next
+                    
+                    weighted_conf = (
+                        (current['confidence'] * dur_current + next_seg['confidence'] * dur_next) 
+                        / total_dur
+                    )
+                    current['confidence'] = weighted_conf
+                
+                logger.debug(f"Merged segments: {reason}")
             else:
-                # Save current and start new segment
+                # Save current and start new
                 merged.append(current)
                 current = next_seg.copy()
         
-        # Don't forget the last segment
         merged.append(current)
         
-        logger.debug(f"Segment merging: {len(segments)} → {len(merged)} segments")
+        logger.info(f"Segment merging: {len(segments)} → {len(merged)} segments "
+                   f"({(1 - len(merged)/len(segments))*100:.1f}% reduction)")
         return merged
+    
+    def _merge_segments_smart(self, segments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Legacy method for backward compatibility.
+        Delegates to adaptive merging with default analysis.
+        """
+        if not segments or len(segments) <= 1:
+            return segments
+        
+        analysis = self.segment_analyzer.analyze_segments(segments)
+        return self._merge_segments_adaptive(segments, analysis)
 
     def _calculate_quality_metrics(self, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Calculate quality metrics for transcribed segments.
+        Delegates to QualityMetricsCalculator for consistency.
         
         Args:
             segments: List of segment dictionaries with confidence scores
             
         Returns:
-            Dictionary with quality metrics
+            Dictionary with quality metrics (backward compatible format)
         """
-        if not segments:
-            return {
-                "avg_confidence": 0.0,
-                "low_confidence_count": 0,
-                "total_segments": 0,
-                "min_confidence": 0.0,
-                "max_confidence": 0.0
-            }
+        metrics = self.quality_metrics_calculator.calculate_metrics(segments)
         
+        # Return backward-compatible format
         confidences = [seg.get('confidence', 0.0) for seg in segments if 'confidence' in seg]
-        
-        if not confidences:
-            return {
-                "avg_confidence": 0.0,
-                "low_confidence_count": 0,
-                "total_segments": len(segments),
-                "min_confidence": 0.0,
-                "max_confidence": 0.0
-            }
-        
         return {
-            "avg_confidence": sum(confidences) / len(confidences),
+            "avg_confidence": metrics['confidence_simple_avg'],
             "low_confidence_count": sum(1 for c in confidences if c < self.segment_merge_threshold),
-            "total_segments": len(segments),
-            "min_confidence": min(confidences),
-            "max_confidence": max(confidences)
+            "total_segments": metrics['segment_count'],
+            "min_confidence": min(confidences) if confidences else 0.0,
+            "max_confidence": max(confidences) if confidences else 0.0,
+            # Add new metrics
+            "quality_tier": metrics['quality_tier'],
+            "degradation_detected": metrics['degradation_detected'],
+            "confidence_weighted_avg": metrics['confidence_weighted_avg']
         }
 
 
@@ -328,11 +337,19 @@ class AudioTranscriber:
             now = datetime.now()
             processing_time = (now - start_time).total_seconds()
             
-            # Apply smart segment merging for better quality
-            transcribed_segments = self._merge_segments_smart(transcribed_segments)
+            # Apply adaptive segment merging for better quality
+            analysis = self.segment_analyzer.analyze_segments(transcribed_segments)
+            logger.info(f"Segment analysis: {analysis['analysis_quality']} quality, "
+                       f"adaptive_threshold={analysis['adaptive_threshold']:.3f}s, "
+                       f"speech_rate={analysis['speech_rate']:.2f} wps")
             
-            # Calculate quality metrics
-            quality_metrics = self._calculate_quality_metrics(transcribed_segments)
+            transcribed_segments = self._merge_segments_adaptive(
+                transcribed_segments, 
+                analysis
+            )
+            
+            # Calculate quality metrics using QualityMetricsCalculator
+            quality_metrics = self.quality_metrics_calculator.calculate_metrics(transcribed_segments)
             
             transcription_data = {
                 'filename': Path(audio_path).stem,

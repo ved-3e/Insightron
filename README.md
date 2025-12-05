@@ -1,4 +1,4 @@
-# 🎤 Insightron v2.1.0 - Next-Gen AI Transcriber
+# 🎤 Insightron v2.2.0 - Next-Gen AI Transcriber
 
 **Transform audio into beautifully structured insights with lightning-fast precision.**
 
@@ -18,7 +18,11 @@ Insightron is a next-generation transcription application powered by **faster-wh
 - **🔴 Realtime Transcription**: Low-latency live audio capture with automatic Obsidian note saving
 - 🛡️ **Robust Error Handling**: Intelligent retry mechanism with automatic parameter adjustment for difficult audio
 - 🧠 **Adaptive VAD**: Dynamic voice activity detection that adapts to changing background noise levels
-- ✨ **Smart Segment Merging**: Intelligently merges fragmented speech for more coherent sentences
+- ✨ **Adaptive Segment Merging**: Machine-learned gap thresholds that adapt to speaker cadence and natural pauses
+- 📊 **Enhanced Quality Metrics**: Weighted confidence scoring with degradation detection and quality tiers
+- 🔄 **Batch Resume & Recovery**: Resume failed batches from where they left off with state persistence
+- 📈 **Event-Driven Progress**: Milestone-based progress tracking with segment-level events
+- 💾 **Memory Monitoring**: Real-time memory tracking to prevent OOM conditions during batch processing
 
 ### 🎨 **Modern Dark-Black Theme** ✨
 - **Pure Black Background**: Material Dark theme perfect for OLED screens
@@ -432,9 +436,19 @@ black *.py
 
 *Transform audio into structured wisdom — locally, beautifully, intelligently.*
 
-**Insightron v2.1.0** - Speed, Efficiency, and Intelligence
+**Insightron v2.2.0** - Enterprise-Grade Intelligence
 
-## 🆕 What's New in v2.1.0
+## 🆕 What's New in v2.2.0
+
+### **🚀 Enterprise-Grade Improvements**
+- ✅ **Adaptive Segment Merging**: Machine-learned gap thresholds that adapt to speaker cadence (fast/slow/normal speech patterns)
+- ✅ **Enhanced Quality Metrics**: Weighted confidence scoring, percentile analysis, and quality degradation detection
+- ✅ **Batch Resume & Recovery**: Resume failed batches from where they left off with JSON state persistence
+- ✅ **Event-Driven Progress**: Milestone-based progress tracking (25%, 50%, 75%, 100%) with segment-level events
+- ✅ **Memory Monitoring**: Real-time memory tracking with OOM prevention for large batch operations
+- ✅ **Code Quality**: Reduced duplication by centralizing quality metrics calculation
+
+### **Previous Updates (v2.1.0)**
 
 ### **🚀 New Features**
 - ✅ **Bullets Formatting**: New "bullets" formatting style to automatically create bulleted lists from speech.

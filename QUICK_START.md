@@ -1,16 +1,20 @@
-# Insightron Performance Improvements - Quick Start Guide
+# Insightron v2.2.0 - Quick Start Guide
 
-## 🚀 What's New
+## 🚀 What's New in v2.2.0
 
-Based on benchmark feedback, Insightron now includes **optimized batch processing** with multi-core support to significantly improve performance when transcribing multiple files.
+Insightron v2.2.0 introduces **enterprise-grade improvements** with adaptive algorithms, enhanced reliability, and better monitoring capabilities.
 
 ### Key Improvements
 
+✅ **Adaptive Segment Merging** - Machine-learned gap thresholds that adapt to speaker cadence  
+✅ **Enhanced Quality Metrics** - Weighted confidence scoring with degradation detection  
+✅ **Batch Resume & Recovery** - Resume failed batches from where they left off  
+✅ **Event-Driven Progress** - Milestone-based progress tracking with segment-level events  
+✅ **Memory Monitoring** - Real-time memory tracking to prevent OOM conditions  
 ✅ **Batch Processing** - Process multiple files efficiently with parallel workers  
 ✅ **Thread Pool Support** - Better resource management for I/O-bound tasks  
 ✅ **Process Pool Support** - Bypass Python's GIL for CPU-bound tasks  
 ✅ **Auto Worker Detection** - Automatically uses optimal number of workers based on your CPU  
-✅ **CLI Batch Mode** - Easy command-line interface for batch operations  
 
 ---
 
@@ -18,9 +22,11 @@ Based on benchmark feedback, Insightron now includes **optimized batch processin
 
 **Your System:** 12 cores, 15.73GB RAM
 
-- **Single File**: Standard performance
-- **Batch (Thread Pool)**: 2-3x faster for multiple files
+- **Single File**: Standard performance with adaptive segment merging
+- **Batch (Thread Pool)**: 2-3x faster for multiple files with resume capability
 - **Batch (Process Pool)**: Up to 2x faster for CPU-intensive text processing
+- **Quality Metrics**: Enhanced accuracy with weighted confidence scoring
+- **Memory Safety**: Automatic OOM prevention during large batch operations
 
 ---
 
@@ -43,6 +49,10 @@ python cli.py *.mp3 -b --use-processes
 
 # Batch with 4 workers and custom settings
 python cli.py audio*.mp3 -b -w 4 -m medium -l en
+
+# Batch with resume capability (automatically resumes if interrupted)
+# State is saved in .batch_state/ directory
+python cli.py *.mp3 -b --enable-resume
 
 # Create bulleted lists from speech
 python cli.py meeting_notes.wav -f bullets
@@ -262,16 +272,23 @@ python cli.py *.mp3 -b -w 4  # Use fewer workers
 
 ## ✅ Summary
 
-**Before:**
+**Before (v2.1.0):**
 - Single file processing only
 - Manual threading with limited benefits
 - No multi-core utilization
+- Static segment merging thresholds
+- Basic quality metrics
 
-**After:**
+**After (v2.2.0):**
 - ✅ Batch processing with auto worker detection
 - ✅ Thread pool for I/O-bound tasks
 - ✅ Process pool for CPU-bound tasks
 - ✅ 2-3x faster for multiple files
+- ✅ Adaptive segment merging based on speech patterns
+- ✅ Enhanced quality metrics with degradation detection
+- ✅ Batch resume & recovery from failures
+- ✅ Event-driven progress tracking
+- ✅ Memory monitoring to prevent OOM
 - ✅ Easy CLI interface: `python cli.py *.mp3 -b`
 
 **Get Started:**

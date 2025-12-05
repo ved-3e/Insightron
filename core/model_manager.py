@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, Tuple, Iterator
 from faster_whisper import WhisperModel
 from faster_whisper.transcribe import TranscriptionInfo, Segment
 from core.config import get_config_manager
+from transcription.quality_metrics import QualityMetricsCalculator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -84,6 +85,9 @@ class ModelManager:
         # Adaptive VAD: dynamically adjust threshold based on audio characteristics
         self.adaptive_vad = config.get('model.adaptive_vad', False)
         self.batch_size = config.get('model.batch_size', 1)  # Batch inference support
+        
+        # Use QualityMetricsCalculator for consistency
+        self.quality_metrics_calculator = QualityMetricsCalculator()
         
         # Adjust parameters based on quality mode
         self._configure_quality_mode()
@@ -284,9 +288,10 @@ class ModelManager:
     def get_quality_metrics(self, segments: list) -> Dict[str, Any]:
         """
         Calculate quality metrics for transcribed segments.
+        Uses QualityMetricsCalculator for consistency.
         
         Args:
-            segments: List of Segment objects
+            segments: List of Segment objects from faster-whisper
             
         Returns:
             Dictionary with quality metrics
@@ -298,12 +303,29 @@ class ModelManager:
                 "total_segments": 0
             }
         
-        confidences = [seg.avg_logprob for seg in segments if hasattr(seg, 'avg_logprob')]
+        # Convert Segment objects to dict format for QualityMetricsCalculator
+        segment_dicts = []
+        for seg in segments:
+            segment_dict = {
+                'start': seg.start,
+                'end': seg.end,
+                'text': seg.text
+            }
+            if hasattr(seg, 'avg_logprob'):
+                segment_dict['confidence'] = seg.avg_logprob
+            segment_dicts.append(segment_dict)
         
+        # Use QualityMetricsCalculator
+        metrics = self.quality_metrics_calculator.calculate_metrics(segment_dicts)
+        
+        # Return backward-compatible format
+        confidences = [seg.avg_logprob for seg in segments if hasattr(seg, 'avg_logprob')]
         return {
-            "avg_confidence": sum(confidences) / len(confidences) if confidences else 0.0,
+            "avg_confidence": metrics['confidence_simple_avg'],
             "low_confidence_count": sum(1 for c in confidences if c < -0.5),
-            "total_segments": len(segments),
+            "total_segments": metrics['segment_count'],
             "min_confidence": min(confidences) if confidences else 0.0,
-            "max_confidence": max(confidences) if confidences else 0.0
+            "max_confidence": max(confidences) if confidences else 0.0,
+            "quality_tier": metrics['quality_tier'],
+            "degradation_detected": metrics['degradation_detected']
         }
