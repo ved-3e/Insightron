@@ -4,6 +4,8 @@ from faster_whisper import WhisperModel
 from faster_whisper.transcribe import TranscriptionInfo, Segment
 from core.config import get_config_manager
 from transcription.quality_metrics import QualityMetricsCalculator
+import numpy as np
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +39,7 @@ class ModelManager:
     _instance = None
     _model = None
 
-    # Quality-optimized default parameters
+    # Performance-optimized default parameters with dynamic tuning
     DEFAULT_PARAMS = {
         "beam_size": 5,  # Accuracy priority (1=fastest, 5=balanced, 10=best)
         "best_of": 5,  # Number of candidates for beam search
@@ -46,15 +48,20 @@ class ModelManager:
         "compression_ratio_threshold": 2.4,  # Detect repetition/failures
         "log_prob_threshold": -1.0,  # Filter low-confidence segments
         "no_speech_threshold": 0.6,  # Detect silence/non-speech
+        "patience": 1.0,  # Beam search patience (faster convergence)
+        "length_penalty": 1.0,  # Length penalty for beam search
     }
     
-    # Enhanced VAD parameters for cleaner segments
+    # Enhanced VAD parameters for cleaner segments (optimized for accuracy)
     VAD_PARAMS = {
         "threshold": 0.5,  # Speech detection confidence (0.0-1.0)
         "min_speech_duration_ms": 250,  # Ignore very short utterances
         "min_silence_duration_ms": 2000,  # Merge segments with short gaps
         "speech_pad_ms": 400,  # Padding around detected speech
     }
+    
+    # Performance cache for model warm-up
+    _model_warmup_done = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -86,6 +93,11 @@ class ModelManager:
         self.adaptive_vad = config.get('model.adaptive_vad', False)
         self.batch_size = config.get('model.batch_size', 1)  # Batch inference support
         
+        # Performance optimizations
+        self.enable_model_warmup = config.get('model.enable_warmup', True)
+        self.enable_dynamic_beam = config.get('model.enable_dynamic_beam', True)
+        self.audio_analysis_cache = {}  # Cache for audio characteristics
+        
         # Use QualityMetricsCalculator for consistency
         self.quality_metrics_calculator = QualityMetricsCalculator()
         
@@ -93,7 +105,8 @@ class ModelManager:
         self._configure_quality_mode()
         
         logger.info(f"ModelManager initialized: Model={self.model_size}, Device={self.device}, "
-                   f"Quality={self.quality_mode}, VAD={self.enable_vad}, AdaptiveVAD={self.adaptive_vad}")
+                   f"Quality={self.quality_mode}, VAD={self.enable_vad}, AdaptiveVAD={self.adaptive_vad}, "
+                   f"Warmup={self.enable_model_warmup}, DynamicBeam={self.enable_dynamic_beam}")
 
     def _configure_quality_mode(self):
         """Configure parameters based on quality mode."""
@@ -113,6 +126,7 @@ class ModelManager:
     def load_model(self) -> WhisperModel:
         """
         Loads the faster-whisper WhisperModel if not already loaded.
+        Includes model warm-up for better first-inference performance.
         
         Returns:
             WhisperModel: Loaded model instance
@@ -136,10 +150,40 @@ class ModelManager:
                     local_files_only=False
                 )
                 logger.info(f"✓ Model loaded successfully: {model_name}")
+                
+                # Warm up the model for better first-inference performance
+                if self.enable_model_warmup and not ModelManager._model_warmup_done:
+                    self._warmup_model()
+                    ModelManager._model_warmup_done = True
+                    
             except Exception as e:
                 logger.error(f"Failed to load model: {e}")
                 raise RuntimeError(f"Could not load model '{self.model_size}': {e}")
         return self._model
+    
+    def _warmup_model(self):
+        """Warm up the model with a dummy inference to optimize first real inference."""
+        try:
+            logger.info("Warming up model for optimal performance...")
+            # Create a small dummy audio array (1 second of silence at 16kHz)
+            dummy_audio = np.zeros(16000, dtype=np.float32)
+            start_time = time.time()
+            
+            # Run a quick warmup inference
+            segments, _ = self._model.transcribe(
+                dummy_audio,
+                beam_size=1,
+                language=None,
+                task="transcribe",
+                vad_filter=False
+            )
+            # Consume the iterator to actually run inference
+            list(segments)
+            
+            warmup_time = time.time() - start_time
+            logger.info(f"✓ Model warmup completed in {warmup_time:.2f}s")
+        except Exception as e:
+            logger.warning(f"Model warmup failed (non-critical): {e}")
 
     def transcribe(
         self,
@@ -168,8 +212,8 @@ class ModelManager:
         """
         model = self.load_model()
         
-        # Merge default quality parameters with user overrides
-        params = self._build_transcription_params(language, task, **kwargs)
+        # Merge default quality parameters with user overrides (pass audio for optimization)
+        params = self._build_transcription_params(language, task, audio=audio, **kwargs)
         
         # Attempt transcription with retry mechanism
         if self.enable_retry:
@@ -181,14 +225,23 @@ class ModelManager:
         self,
         language: Optional[str],
         task: str,
+        audio: Any = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Build optimized transcription parameters."""
+        """Build optimized transcription parameters with dynamic tuning."""
+        # Get base parameters
+        beam_size = kwargs.pop("beam_size", self.default_beam_size)
+        best_of = kwargs.pop("best_of", self.default_best_of)
+        
+        # Dynamic beam size adjustment based on audio characteristics
+        if self.enable_dynamic_beam and audio is not None:
+            beam_size, best_of = self._optimize_beam_size(audio, beam_size, best_of)
+        
         params = {
             "language": language,
             "task": task,
-            "beam_size": kwargs.pop("beam_size", self.default_beam_size),
-            "best_of": kwargs.pop("best_of", self.default_best_of),
+            "beam_size": beam_size,
+            "best_of": best_of,
             "temperature": kwargs.pop("temperature", self.DEFAULT_PARAMS["temperature"]),
             "condition_on_previous_text": kwargs.pop(
                 "condition_on_previous_text",
@@ -206,17 +259,63 @@ class ModelManager:
                 "no_speech_threshold",
                 self.DEFAULT_PARAMS["no_speech_threshold"]
             ),
+            "patience": kwargs.pop("patience", self.DEFAULT_PARAMS.get("patience", 1.0)),
+            "length_penalty": kwargs.pop("length_penalty", self.DEFAULT_PARAMS.get("length_penalty", 1.0)),
             "vad_filter": kwargs.pop("vad_filter", self.enable_vad),
         }
         
-        # Add VAD parameters if enabled
+        # Add VAD parameters if enabled (with adaptive tuning)
         if params["vad_filter"]:
-            params["vad_parameters"] = kwargs.pop("vad_parameters", self.VAD_PARAMS.copy())
+            vad_params = self.VAD_PARAMS.copy()
+            if self.adaptive_vad and audio is not None:
+                vad_params = self._optimize_vad_params(audio, vad_params)
+            params["vad_parameters"] = kwargs.pop("vad_parameters", vad_params)
         
         # Include any additional kwargs
         params.update(kwargs)
         
         return params
+    
+    def _optimize_beam_size(self, audio: Any, default_beam: int, default_best_of: int) -> Tuple[int, int]:
+        """
+        Dynamically optimize beam size based on audio characteristics.
+        For longer/complex audio, use higher beam size for accuracy.
+        For shorter/simple audio, use lower beam size for speed.
+        """
+        try:
+            # Analyze audio if it's a numpy array
+            if isinstance(audio, np.ndarray):
+                duration = len(audio) / 16000  # Assume 16kHz
+                # For very short audio (< 5s), use lower beam for speed
+                if duration < 5.0:
+                    return max(1, default_beam - 2), max(1, default_best_of - 2)
+                # For very long audio (> 60s), use higher beam for accuracy
+                elif duration > 60.0:
+                    return min(10, default_beam + 2), min(10, default_best_of + 2)
+            # For file paths, use default (analysis would require loading)
+            return default_beam, default_best_of
+        except Exception as e:
+            logger.debug(f"Beam size optimization failed: {e}, using defaults")
+            return default_beam, default_best_of
+    
+    def _optimize_vad_params(self, audio: Any, base_params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Adaptively optimize VAD parameters based on audio characteristics.
+        Adjusts threshold based on estimated noise level.
+        """
+        try:
+            if isinstance(audio, np.ndarray):
+                # Estimate noise level from audio RMS
+                rms = np.sqrt(np.mean(audio**2))
+                # Adjust threshold: lower RMS = lower threshold (more sensitive)
+                if rms < 0.01:  # Very quiet audio
+                    base_params["threshold"] = max(0.3, base_params["threshold"] - 0.1)
+                elif rms > 0.1:  # Loud/noisy audio
+                    base_params["threshold"] = min(0.7, base_params["threshold"] + 0.1)
+            return base_params
+        except Exception as e:
+            logger.debug(f"VAD optimization failed: {e}, using defaults")
+            return base_params
 
     def _transcribe_once(
         self,

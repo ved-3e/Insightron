@@ -78,22 +78,29 @@ class BatchTranscriber:
         self.language = language
         self.use_multiprocessing = use_multiprocessing
         
-        # Determine optimal worker count from config or defaults
+        # Determine optimal worker count from config or defaults (optimized)
         if max_workers is None:
             # Try to get worker_count from config first
             worker_count_config = get_config('runtime.worker_count')
             if worker_count_config is not None:
                 self.max_workers = worker_count_config
             else:
-                # Auto-detect based on CPU and device
+                # Auto-detect based on CPU and device (improved algorithm)
                 cpu_count = os.cpu_count() or 1
-                import torch
-                if torch.cuda.is_available():
-                    # Conservative default for GPU: 2 workers or 1/4 of CPUs
-                    self.max_workers = max(1, min(2, cpu_count // 4))
+                try:
+                    import torch
+                    has_gpu = torch.cuda.is_available()
+                except ImportError:
+                    has_gpu = False
+                
+                if has_gpu:
+                    # GPU: More conservative to avoid memory issues
+                    # Use 2-4 workers depending on CPU cores
+                    self.max_workers = max(1, min(4, cpu_count // 2))
                 else:
-                    # For CPU, use physical cores (often cpu_count / 2 for hyperthreading)
-                    self.max_workers = max(1, int(cpu_count * 0.75))
+                    # CPU: Use more workers but leave one core free for system
+                    # Use 75% of cores, minimum 2, maximum 8 for stability
+                    self.max_workers = max(2, min(8, int(cpu_count * 0.75)))
         else:
             self.max_workers = max_workers
             

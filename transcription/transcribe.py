@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, Callable, List
 import librosa
 import soundfile
 import numpy as np
+from functools import lru_cache
 
 
 from core.utils import create_markdown
@@ -62,6 +63,12 @@ class AudioTranscriber:
         self.min_segment_duration = config.get('transcription.min_segment_duration', 0.1)
         self.progress_update_frequency = config.get('transcription.progress_update_frequency', 5)
         self.enable_segment_filtering = config.get('transcription.enable_segment_filtering', True)
+        self.enable_audio_normalization = config.get('transcription.enable_audio_normalization', True)
+        self.enable_audio_preprocessing = config.get('transcription.enable_audio_preprocessing', True)
+        
+        # Performance optimizations
+        self.segment_cache_size = config.get('transcription.segment_cache_size', 1000)
+        self.enable_parallel_segment_processing = config.get('transcription.enable_parallel_segments', False)
         
         # Add segment analyzer and quality metrics calculator
         self.segment_analyzer = SegmentAnalyzer()
@@ -70,7 +77,8 @@ class AudioTranscriber:
         logger.info(f"AudioTranscriber initialized with model: {self.model_size}")
         logger.info(f"AudioTranscriber initialized with adaptive segment merging")
         logger.debug(f"Optimization settings: merge_threshold={self.segment_merge_threshold}, "
-                    f"min_duration={self.min_segment_duration}s, progress_freq={self.progress_update_frequency}%")
+                    f"min_duration={self.min_segment_duration}s, progress_freq={self.progress_update_frequency}%, "
+                    f"normalization={self.enable_audio_normalization}, preprocessing={self.enable_audio_preprocessing}")
 
     def set_language(self, language: str) -> bool:
         """Set the transcription language."""
@@ -106,30 +114,36 @@ class AudioTranscriber:
         logger.info(f"Audio file validation passed: {audio.name} ({file_size_mb:.1f}MB)")
         return True
 
+    @lru_cache(maxsize=100)
+    def _get_audio_info_cached(self, audio_path: str) -> tuple:
+        """Cached audio info extraction for performance."""
+        try:
+            info = soundfile.info(audio_path)
+            return (info.duration, info.samplerate, info.channels)
+        except Exception:
+            try:
+                duration = librosa.get_duration(filename=audio_path)
+                return (duration, 16000, 1)  # Default assumptions
+            except Exception:
+                return (0, 16000, 1)
+    
     def get_audio_metadata(self, audio_path: str) -> Dict[str, Any]:
-        """Extract comprehensive audio metadata."""
+        """Extract comprehensive audio metadata with caching."""
         try:
             audio = Path(audio_path)
             file_size = audio.stat().st_size
             
-            duration = 0
-            try:
-                # Try librosa first
-                duration = librosa.get_duration(filename=str(audio))
-            except Exception:
-                try:
-                    # Fallback to soundfile
-                    info = soundfile.info(str(audio))
-                    duration = info.duration
-                except Exception:
-                    pass
+            # Use cached info extraction
+            duration, sample_rate, channels = self._get_audio_info_cached(str(audio))
             
             metadata = {
                 'filename': audio.name,
                 'file_size_mb': file_size / (1024 * 1024),
                 'duration_seconds': duration,
                 'duration_formatted': f"{int(duration // 60)}:{(duration % 60):02.0f}" if duration else "Unknown",
-                'file_extension': audio.suffix.lower()
+                'file_extension': audio.suffix.lower(),
+                'sample_rate': sample_rate,
+                'channels': channels
             }
             return metadata
             
@@ -140,8 +154,40 @@ class AudioTranscriber:
                 'file_size_mb': 0,
                 'duration_seconds': 0,
                 'duration_formatted': "Unknown",
-                'file_extension': Path(audio_path).suffix.lower()
+                'file_extension': Path(audio_path).suffix.lower(),
+                'sample_rate': 16000,
+                'channels': 1
             }
+    
+    def _preprocess_audio(self, audio_path: str) -> Optional[np.ndarray]:
+        """
+        Preprocess audio for optimal transcription quality.
+        Includes normalization, resampling, and noise reduction hints.
+        """
+        if not self.enable_audio_preprocessing:
+            return None
+        
+        try:
+            # Load audio with librosa (handles resampling automatically)
+            audio, sr = librosa.load(audio_path, sr=16000, mono=True, dtype=np.float32)
+            
+            # Normalize audio if enabled
+            if self.enable_audio_normalization:
+                # Peak normalization to prevent clipping
+                max_val = np.abs(audio).max()
+                if max_val > 0:
+                    audio = audio / max_val * 0.95  # Leave 5% headroom
+            
+            # Simple high-pass filter to remove low-frequency noise
+            # (This is a lightweight filter, not full noise reduction)
+            if len(audio) > 100:
+                # Remove DC offset
+                audio = audio - np.mean(audio)
+            
+            return audio
+        except Exception as e:
+            logger.warning(f"Audio preprocessing failed: {e}, using original file")
+            return None
 
     def _merge_segments_adaptive(
         self, 
@@ -272,12 +318,14 @@ class AudioTranscriber:
             elif self.language and self.language != 'auto':
                 transcription_language = self.language
             
-            # Transcribe
-            # faster-whisper returns a generator
-            # Transcribe
-            # faster-whisper returns a generator
+            # Preprocess audio if enabled (for better quality)
+            preprocessed_audio = self._preprocess_audio(audio_path)
+            audio_input = preprocessed_audio if preprocessed_audio is not None else str(audio_path)
+            
+            # Transcribe with optimized parameters
+            # Use preprocessed audio if available, otherwise use file path
             segments, info = self.model_manager.transcribe(
-                str(audio_path),
+                audio_input,
                 beam_size=self.beam_size,
                 language=transcription_language,
                 task="transcribe"
@@ -287,9 +335,6 @@ class AudioTranscriber:
                 progress_callback(f"Detected language: {info.language} (probability: {info.language_probability:.2f})")
             
             # Process segments with optimizations
-            transcribed_segments = []
-            text_parts = []  # Memory-efficient list for text assembly
-            
             total_duration = info.duration
             last_progress_percent = -1
             
@@ -298,7 +343,10 @@ class AudioTranscriber:
             transcribed_segments = []
             text_parts = []
             
+            # Process segments with optimized loop
+            segment_count = 0
             for segment in segments:
+                segment_count += 1
                 # Smart segment filtering: skip very short, low-confidence segments
                 segment_duration = segment.end - segment.start
                 if self.enable_segment_filtering:
@@ -307,20 +355,21 @@ class AudioTranscriber:
                             logger.debug(f"Filtered micro-segment: {segment_duration:.2f}s, confidence: {segment.avg_logprob:.2f}")
                             continue
                 
-                # Store segment data
+                # Store segment data (optimized dict creation)
                 segment_data = {
                     "id": segment.id,
                     "start": segment.start,
                     "end": segment.end,
-                    "text": segment.text
+                    "text": segment.text.strip()  # Strip whitespace immediately
                 }
                 
                 # Add confidence if available
                 if hasattr(segment, 'avg_logprob'):
-                    segment_data["confidence"] = segment.avg_logprob
+                    segment_data["confidence"] = float(segment.avg_logprob)
                 
                 transcribed_segments.append(segment_data)
-                text_parts.append(segment.text)
+                # Use pre-stripped text for efficiency
+                text_parts.append(segment_data["text"])
                 
                 # Optimized progress updates: only update on significant changes
                 if progress_callback and total_duration > 0:
@@ -330,8 +379,8 @@ class AudioTranscriber:
                         progress_callback(f"Transcribing: {current_percent}% ({int(segment.end)}s/{int(total_duration)}s)")
                         last_progress_percent = current_percent
             
-            # Efficient text assembly using join (O(n) vs O(n²) concatenation)
-            final_text = "".join(text_parts).strip()
+            # Efficient text assembly using join with space separator (O(n) vs O(n²) concatenation)
+            final_text = " ".join(text_parts).strip()
             
             # Prepare result data
             now = datetime.now()

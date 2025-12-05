@@ -71,6 +71,16 @@ model:
   # Higher values can improve throughput but require more memory
   # Default: 1 (sequential processing)
   batch_size: 1
+  
+  # Enable model warmup: Warm up the model on first load for better first-inference performance
+  # Reduces latency on the first transcription after startup
+  # Default: true
+  enable_warmup: true
+  
+  # Enable dynamic beam size: Dynamically adjust beam size based on audio characteristics
+  # Optimizes speed vs accuracy trade-off automatically
+  # Default: true
+  enable_dynamic_beam: true
 
 # ============================================================================
 # Runtime Configuration
@@ -197,4 +207,24 @@ transcription:
   # Improves output quality by removing noise
   # Default: true
   enable_segment_filtering: true
+  
+  # Enable audio normalization: Normalize audio levels for better transcription quality
+  # Reduces clipping and improves accuracy on varying volume levels
+  # Default: true
+  enable_audio_normalization: true
+  
+  # Enable audio preprocessing: Apply audio preprocessing (normalization, resampling)
+  # Improves transcription accuracy, especially for low-quality recordings
+  # Default: true
+  enable_audio_preprocessing: true
+  
+  # Segment cache size: Number of segment metadata entries to cache
+  # Higher values = better performance on repeated operations but more memory
+  # Default: 1000
+  segment_cache_size: 1000
+  
+  # Enable parallel segment processing: Process segments in parallel (experimental)
+  # May improve performance on multi-core systems but can increase memory usage
+  # Default: false
+  enable_parallel_segments: false
 

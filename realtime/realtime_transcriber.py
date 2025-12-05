@@ -240,35 +240,53 @@ class RealtimeTranscriber:
             return
 
         try:
-            # Transcribe
+            # Transcribe with optimized parameters for real-time
             # Convert 'auto' to None for faster-whisper compatibility
             lang = None if self.language == 'auto' else self.language
+            
+            # Use optimized real-time parameters: beam_size=1 for speed, but with VAD for quality
             segments, info = self.model_manager.transcribe(
                 audio_chunk,
                 language=lang,
                 beam_size=1,   # Fast for realtime
-                vad_filter=True
+                best_of=1,     # Single candidate for speed
+                temperature=[0.0],  # Deterministic for consistency
+                vad_filter=True,
+                condition_on_previous_text=False  # Disable for faster inference
             )
             
-            # Collect text
+            # Collect text efficiently
             segment_list = list(segments)
-            text = " ".join([s.text for s in segment_list]).strip()
+            if not segment_list:
+                return
+            
+            # Optimized text assembly
+            text = " ".join(s.text.strip() for s in segment_list if s.text.strip()).strip()
             
             # Track detected language from first inference
             if self.detected_language is None and info:
                 self.detected_language = info.language
             
             if text:
-                # Store segments for note saving
+                # Store segments for note saving (optimized)
+                current_time = time.time()
                 for seg in segment_list:
                     self.transcribed_segments.append({
                         'start': seg.start,
                         'end': seg.end,
-                        'text': seg.text
+                        'text': seg.text.strip()
                     })
                 
-                # Heuristic: If text is very similar to previous, don't update (stabilization)
-                # For now, just send it.
+                # Deduplication: Skip if text is very similar to last segment (reduces flicker)
+                if self.transcribed_segments:
+                    last_text = self.transcribed_segments[-1].get('text', '')
+                    # Simple similarity check: if >80% overlap, skip
+                    if last_text and len(text) > 0:
+                        similarity = len(set(text.lower().split()) & set(last_text.lower().split())) / max(len(text.split()), len(last_text.split()))
+                        if similarity > 0.8 and len(text) < len(last_text) * 1.2:
+                            return  # Skip duplicate/very similar text
+                
+                # Send result
                 if self.result_callback:
                     self.result_callback(text)
                     
