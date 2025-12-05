@@ -78,13 +78,19 @@ def run_command(command, description, exit_on_fail=False, timeout=600):
     """Run a command and handle errors gracefully."""
     print(f"🔄 {description}...")
     try:
+        # On Windows, ensure proper encoding for subprocess output
+        env = os.environ.copy()
+        if sys.platform == "win32":
+            env['PYTHONIOENCODING'] = 'utf-8'
+        
         result = subprocess.run(
             command,
             shell=True,
             check=True,
             capture_output=True,
             text=True,
-            timeout=timeout
+            timeout=timeout,
+            env=env
         )
         print(f"✅ {description} completed successfully")
         return True
@@ -96,12 +102,21 @@ def run_command(command, description, exit_on_fail=False, timeout=600):
     except subprocess.CalledProcessError as e:
         print(f"❌ {description} failed:")
         if e.stderr:
-            print(f"   Error: {e.stderr[:200]}")  # Limit error output
+            # Decode error output properly
+            error_msg = e.stderr[:500] if len(e.stderr) > 500 else e.stderr
+            print(f"   Error: {error_msg}")
+        if e.stdout:
+            # Sometimes useful info is in stdout
+            stdout_msg = e.stdout[:200] if len(e.stdout) > 200 else e.stdout
+            if stdout_msg.strip():
+                print(f"   Output: {stdout_msg}")
         if exit_on_fail:
             sys.exit(1)
         return False
     except Exception as e:
         print(f"❌ {description} failed with unexpected error: {e}")
+        import traceback
+        print(f"   Traceback: {traceback.format_exc()}")
         if exit_on_fail:
             sys.exit(1)
         return False
@@ -194,8 +209,11 @@ def install_dependencies():
     
     print(f"   Using: {requirements_path}")
     
+    # Quote path for Windows compatibility (handles spaces in paths)
+    requirements_path_str = f'"{requirements_path}"' if platform.system() == "Windows" else str(requirements_path)
+    
     success = run_command(
-        f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary --no-cache-dir",
+        f"{sys.executable} -m pip install -r {requirements_path_str} --prefer-binary --no-cache-dir",
         "Installing requirements",
         exit_on_fail=False,
         timeout=900
@@ -219,7 +237,7 @@ def install_dependencies():
         # Retry full installation
         print("\n🔄 Retrying full installation...")
         success = run_command(
-            f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary --no-cache-dir",
+            f"{sys.executable} -m pip install -r {requirements_path_str} --prefer-binary --no-cache-dir",
             "Retrying requirements installation",
             exit_on_fail=False,
             timeout=900
@@ -234,8 +252,11 @@ def install_dependencies():
                 print("❌ ERROR: requirements-minimal.txt not found")
                 return False
             
+            # Quote path for Windows compatibility
+            minimal_req_path_str = f'"{minimal_req_path}"' if platform.system() == "Windows" else str(minimal_req_path)
+            
             success = run_command(
-                f"{sys.executable} -m pip install -r {minimal_req_path} --prefer-binary --no-cache-dir",
+                f"{sys.executable} -m pip install -r {minimal_req_path_str} --prefer-binary --no-cache-dir",
                 "Installing minimal requirements",
                 exit_on_fail=False,
                 timeout=300

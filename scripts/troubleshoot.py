@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Insightron v1.0.0 - Enhanced Troubleshooting Script
+Insightron v2.2.0 - Enhanced Troubleshooting Script
 Comprehensive diagnostic and repair tool for Whisper AI Transcriber
 Helps diagnose and fix common installation issues with detailed reporting
 """
@@ -75,12 +75,36 @@ def fix_common_issues():
     print("3. Installing setuptools...")
     install_package("setuptools")
 
+def check_python_version():
+    """Check if Python version is compatible"""
+    version = sys.version_info
+    min_version = (3, 10)
+    
+    if version[:2] < min_version:
+        print(f"❌ ERROR: Python {min_version[0]}.{min_version[1]}+ required")
+        print(f"   Current version: {version.major}.{version.minor}.{version.micro}")
+        print("   Please install Python 3.10, 3.11, or 3.12 from https://python.org")
+        return False
+    
+    if version.minor >= 13:
+        print(f"⚠️  WARNING: Python 3.{version.minor} detected")
+        print("   Many scientific packages (like onnxruntime) do not yet support Python 3.13+.")
+        print("   We STRONGLY recommend using Python 3.10, 3.11, or 3.12.")
+    
+    print(f"✅ Python version: {version.major}.{version.minor}.{version.micro}")
+    return True
+
 def main():
     """Main troubleshooting function"""
-    print("🔍 Insightron v1.0.0 - Enhanced Troubleshooter")
+    print("🔍 Insightron v2.2.0 - Enhanced Troubleshooter")
     print("=" * 60)
     
     check_system_info()
+    
+    # Check Python version
+    if not check_python_version():
+        print("\n❌ Please upgrade Python and try again.")
+        return
     
     # Check pip
     if not check_pip():
@@ -93,32 +117,32 @@ def main():
     print("\n📋 Checking required packages...")
     print("-" * 30)
     
+    # Updated package list for v2.2.0
     required_packages = [
-        "numpy",
-        "scipy", 
-        "tqdm",
-        "librosa",
-        "soundfile",
-        "pydub",
-        "whisper",
-        "colorama"
+        ("numpy", "numpy"),
+        ("faster_whisper", "faster-whisper"),
+        ("librosa", "librosa"),
+        ("soundfile", "soundfile"),
+        ("pydub", "pydub"),
+        ("tqdm", "tqdm"),
+        ("customtkinter", "customtkinter"),
+        ("sounddevice", "sounddevice"),
+        ("psutil", "psutil"),
+        ("colorama", "colorama")
     ]
     
     missing_packages = []
     
-    for package in required_packages:
-        if not check_package(package):
-            missing_packages.append(package)
+    for import_name, package_name in required_packages:
+        if not check_package(import_name):
+            missing_packages.append((import_name, package_name))
     
     if missing_packages:
-        print(f"\n❌ Missing packages: {', '.join(missing_packages)}")
+        print(f"\n❌ Missing packages: {', '.join([p[1] for p in missing_packages])}")
         print("\n🔄 Attempting to install missing packages...")
         
-        for package in missing_packages:
-            if package == "whisper":
-                install_package("openai-whisper")
-            else:
-                install_package(package)
+        for import_name, package_name in missing_packages:
+            install_package(package_name)
     else:
         print("\n✅ All required packages are installed!")
     
@@ -127,12 +151,14 @@ def main():
     
     test_imports = [
         ("numpy", "import numpy"),
-        ("scipy", "import scipy"),
-        ("tqdm", "import tqdm"),
+        ("faster_whisper", "import faster_whisper"),
         ("librosa", "import librosa"),
         ("soundfile", "import soundfile"),
         ("pydub", "import pydub"),
-        ("whisper", "import whisper"),
+        ("tqdm", "import tqdm"),
+        ("customtkinter", "import customtkinter"),
+        ("sounddevice", "import sounddevice"),
+        ("psutil", "import psutil"),
         ("colorama", "import colorama"),
         ("tkinter", "import tkinter")
     ]
@@ -150,13 +176,13 @@ def main():
     if platform.system() == "Windows":
         print("• If you get Microsoft Visual C++ errors, install Visual Studio Build Tools")
         print("• Try running as Administrator if permission errors occur")
-        print("• Consider using conda instead of pip: conda install -c conda-forge whisper")
         print("• Use the Windows installer: install_windows.bat")
     
+    print("• If faster-whisper fails, try: pip install faster-whisper --no-cache-dir")
     print("• If librosa fails, try: pip install librosa --no-cache-dir")
-    print("• If whisper fails, try: pip install openai-whisper --no-cache-dir")
+    print("• If tokenizers fails, install Rust: https://rustup.rs/")
     print("• For audio issues, install ffmpeg: https://ffmpeg.org/download.html")
-    print("• Try minimal installation: pip install -r requirements-minimal.txt")
+    print("• Try minimal installation: pip install -r setup/requirements-minimal.txt")
     print("• Run universal installer: python install.py")
     print("• Or platform-specific: install_windows.bat (Windows) or ./install_unix.sh (Linux/macOS)")
     print("• Or Python installer: python setup/install_dependencies.py")

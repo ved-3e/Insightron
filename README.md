@@ -334,7 +334,7 @@ pip install -r requirements-minimal.txt
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
-| **Python** | 3.8+ | 3.9+ |
+| **Python** | 3.10+ | 3.11+ |
 ```python
 def create_markdown(filename, text, date, duration, model, ...):
     # Your custom template here
