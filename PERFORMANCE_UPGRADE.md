@@ -214,5 +214,5 @@ These upgrades significantly improve Insightron's performance and accuracy while
 ---
 
 *Upgrade Date: 2025-01-27*  
-*Version: 2.3.0*
+*Version: 2.2.0*
 

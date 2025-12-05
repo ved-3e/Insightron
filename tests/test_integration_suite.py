@@ -1,5 +1,5 @@
 """
-Integration tests for Insightron (v2.1.0).
+Integration tests for Insightron (v2.2.0).
 Tests end-to-end workflows and component integration.
 """
 import unittest

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Insightron v2.1.0 - Enhanced Dependency Installer
+Insightron v2.2.0 - Enhanced Dependency Installer
 Cross-platform installer with Windows optimization, better error handling,
 and comprehensive dependency management for the Whisper AI transcription tool.
 """
@@ -54,16 +54,16 @@ def run_command(command, description, exit_on_fail=False):
 
 def main():
     """Main installation process"""
-    print("🎤 Insightron v2.1.0 - Enhanced Dependency Installer")
+    print("🎤 Insightron v2.2.0 - Enhanced Dependency Installer")
     print("=" * 60)
     
-    # Check if we're on Windows
-    if os.name != 'nt':
-        print("⚠️  This installer is optimized for Windows")
-        print("   For other platforms, use: pip install -r setup/requirements.txt")
+    # Display platform information
+    import platform
+    print(f"Platform: {platform.system()} {platform.release()}")
+    print(f"Architecture: {platform.machine()}")
     
     # Check Python version compatibility
-    if sys.version_info.minor > 12:
+    if sys.version_info.minor >= 13:
         print("\n⚠️  WARNING: You are using Python 3.{}".format(sys.version_info.minor))
         print("   Many scientific packages (like onnxruntime) do not yet support Python 3.13+.")
         print("   We STRONGLY recommend using Python 3.10, 3.11, or 3.12.")
@@ -104,12 +104,21 @@ def main():
         print("   https://visualstudio.microsoft.com/visual-cpp-build-tools/")
         return False
     
+    # Get script directory for proper path resolution
+    script_dir = Path(__file__).parent.parent
+    os.chdir(script_dir)
+    
     # Install other dependencies
     print("\n📦 Installing other dependencies...")
-    requirements_path = Path("setup") / "requirements.txt"
+    requirements_path = script_dir / "setup" / "requirements.txt"
     if not requirements_path.exists():
          # Fallback if running from setup dir
-         requirements_path = Path("requirements.txt")
+         requirements_path = script_dir / "requirements.txt"
+         if not requirements_path.exists():
+             print("❌ ERROR: requirements.txt not found")
+             print(f"   Searched in: {script_dir}")
+             print("   Please run this script from the Insightron root directory")
+             return False
 
     if not run_command(f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary", "Installing requirements"):
         print("❌ Failed to install some dependencies via requirements.txt")
@@ -125,9 +134,12 @@ def main():
         
         # Try minimal requirements
         print("\n⚠️  Trying minimal requirements...")
-        minimal_req_path = Path("setup") / "requirements-minimal.txt"
+        minimal_req_path = script_dir / "setup" / "requirements-minimal.txt"
         if not minimal_req_path.exists():
-            minimal_req_path = Path("requirements-minimal.txt")
+            minimal_req_path = script_dir / "requirements-minimal.txt"
+            if not minimal_req_path.exists():
+                print("❌ ERROR: requirements-minimal.txt not found")
+                return False
             
         if not run_command(f"{sys.executable} -m pip install -r {minimal_req_path} --prefer-binary", "Installing minimal requirements"):
              print("❌ Minimal installation also failed.")
@@ -158,7 +170,7 @@ def main():
         return True
     except ImportError as e:
         print(f"❌ Verification failed: {e}")
-        print("💡 Try running: python setup/troubleshoot.py")
+        print("💡 Try running: python scripts/troubleshoot.py")
         return False
 
 if __name__ == "__main__":
@@ -168,8 +180,8 @@ if __name__ == "__main__":
         print("   You can now run:")
         print("   • python insightron.py    # GUI mode (recommended)")
         print("   • python cli.py audio.mp3  # Command line mode")
-        print("   • python setup/troubleshoot.py  # For diagnostics")
+        print("   • python scripts/troubleshoot.py  # For diagnostics")
     else:
         print("\n💥 Installation failed. Please check the errors above.")
-        print("   Try running: python setup/troubleshoot.py")
+        print("   Try running: python scripts/troubleshoot.py")
         sys.exit(1)

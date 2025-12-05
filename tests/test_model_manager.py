@@ -1,5 +1,5 @@
 """
-Enhanced unit tests for Insightron ModelManager (v2.1.0).
+Enhanced unit tests for Insightron ModelManager (v2.2.0).
 Tests quality modes, VAD optimization, retry mechanism, and Distil-Whisper support.
 """
 import unittest

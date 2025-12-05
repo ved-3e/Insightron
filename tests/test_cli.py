@@ -1,5 +1,5 @@
 """
-Unit tests for CLI (Command Line Interface) functionality (v2.1.0).
+Unit tests for CLI (Command Line Interface) functionality (v2.2.0).
 Tests argument parsing, single file mode, batch mode, and error handling.
 """
 import unittest

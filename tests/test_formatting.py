@@ -1,5 +1,5 @@
 """
-Comprehensive unit tests for text formatting functionality (v2.1.0).
+Comprehensive unit tests for text formatting functionality (v2.2.0).
 Tests all formatting modes, sentence splitting, and text cleaning.
 """
 import unittest

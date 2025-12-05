@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Setup Script for Insightron v2.1.0
+Enhanced Setup Script for Insightron v2.2.0
 Optimized installation process with better error handling, progress tracking,
 and faster dependency management for the Whisper AI transcription project.
 """
@@ -78,12 +78,22 @@ def check_python_version() -> bool:
     """Check if Python version is compatible with Insightron."""
     version = sys.version_info
     min_version = (3, 10)
+    max_minor = 12  # Python 3.13+ not yet fully supported
     
     if version[:2] < min_version:
         logger.error(f"Python {min_version[0]}.{min_version[1]}+ required, got {version.major}.{version.minor}")
         print(f"Python {min_version[0]}.{min_version[1]} or higher is required")
         print(f"Current version: {version.major}.{version.minor}.{version.micro}")
         return False
+    
+    if version.minor >= 13:
+        logger.warning(f"Python 3.{version.minor} detected - many packages don't support Python 3.13+ yet")
+        print(f"⚠️  WARNING: Python 3.{version.minor} detected")
+        print("   Many scientific packages (like onnxruntime) do not yet support Python 3.13+.")
+        print("   We STRONGLY recommend using Python 3.10, 3.11, or 3.12.")
+        response = input("   Do you want to continue anyway? (y/N): ")
+        if response.lower() != 'y':
+            return False
     
     logger.info(f"Python version check passed: {version.major}.{version.minor}.{version.micro}")
     return True
@@ -92,6 +102,15 @@ def install_dependencies() -> bool:
     """Install required dependencies with optimized installation strategy."""
     logger.info("Starting dependency installation process")
     print("\n📦 Installing dependencies...")
+    
+    # Get script directory for proper path resolution
+    script_dir = Path(__file__).parent.parent
+    original_dir = os.getcwd()
+    try:
+        os.chdir(script_dir)
+    except Exception as e:
+        logger.warning(f"Could not change to script directory: {e}")
+        script_dir = Path(original_dir)
     
     # Check for Rust
     rust_available = check_rust_installed()
@@ -110,9 +129,14 @@ def install_dependencies() -> bool:
     
     # Try installing from requirements.txt first
     logger.info("Attempting installation from requirements.txt")
-    requirements_path = Path("setup") / "requirements.txt"
+    requirements_path = script_dir / "setup" / "requirements.txt"
     if not requirements_path.exists():
-        requirements_path = Path("requirements.txt")
+        requirements_path = script_dir / "requirements.txt"
+        if not requirements_path.exists():
+            print(f"❌ ERROR: requirements.txt not found")
+            print(f"   Searched in: {script_dir}")
+            print("   Please run this script from the Insightron root directory")
+            return False
 
     success, output = run_command(
         f"{sys.executable} -m pip install -r {requirements_path} --prefer-binary --no-cache-dir", 
@@ -129,9 +153,12 @@ def install_dependencies() -> bool:
     print("requirements.txt failed, trying minimal installation...")
     
     # Fallback to minimal requirements
-    minimal_req_path = Path("setup") / "requirements-minimal.txt"
+    minimal_req_path = script_dir / "setup" / "requirements-minimal.txt"
     if not minimal_req_path.exists():
-        minimal_req_path = Path("requirements-minimal.txt")
+        minimal_req_path = script_dir / "requirements-minimal.txt"
+        if not minimal_req_path.exists():
+            print(f"❌ ERROR: requirements-minimal.txt not found")
+            return False
 
     success, output = run_command(
         f"{sys.executable} -m pip install -r {minimal_req_path} --prefer-binary --no-cache-dir", 
@@ -146,7 +173,7 @@ def install_dependencies() -> bool:
     
     logger.error("Both installation methods failed")
     print("Both installation methods failed")
-    print("Try running: python setup/troubleshoot.py")
+    print("Try running: python scripts/troubleshoot.py")
     return False
 
 def create_directories():
@@ -192,7 +219,7 @@ def test_installation():
 
 def main():
     """Main setup function"""
-    print("Insightron v2.1.0 Setup")
+    print("Insightron v2.2.0 Setup")
     print("=" * 40)
     
     # Check Python version

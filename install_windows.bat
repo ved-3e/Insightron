@@ -2,16 +2,23 @@
 setlocal EnableDelayedExpansion
 
 echo ================================================
-echo    Insightron v2.1.0 - Windows Installer
+echo    Insightron v2.2.0 - Windows Installer
 echo    Enhanced Whisper AI Transcription Tool
 echo ================================================
 echo.
 
 REM Check Python version
-python --version
+python --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo ERROR: Python is not installed or not in PATH
+    echo Please install Python 3.10 - 3.12 from https://python.org
+    pause
+    exit /b 1
+)
+
 for /f %%I in ('python -c "import sys; print(sys.version_info.minor)"') do set PYTHON_MINOR=%%I
 
-if %PYTHON_MINOR% gtr 12 (
+if %PYTHON_MINOR% geq 13 (
     echo.
     echo [WARNING] You are using Python 3.%PYTHON_MINOR%.
     echo           Many scientific packages ^(like onnxruntime^) do not yet support Python 3.13+.
@@ -21,13 +28,6 @@ if %PYTHON_MINOR% gtr 12 (
     echo.
     echo           Press Ctrl+C to cancel or any key to try anyway...
     pause
-)
-
-if %errorlevel% neq 0 (
-    echo ERROR: Python is not installed or not in PATH
-    echo Please install Python 3.10 - 3.12 from https://python.org
-    pause
-    exit /b 1
 )
 
 echo.
@@ -48,9 +48,13 @@ if %errorlevel% neq 0 (
     )
 )
 
+REM Get script directory for relative paths
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
+
 REM Upgrade pip first
 echo [1/4] Upgrading pip...
-python -m pip install --upgrade pip
+python -m pip install --upgrade pip --quiet
 if %errorlevel% neq 0 (
     echo WARNING: pip upgrade failed, continuing anyway...
 )
@@ -69,7 +73,16 @@ if %errorlevel% neq 0 (
 REM Install other dependencies
 echo.
 echo [3/4] Installing other dependencies...
-python -m pip install -r setup/requirements.txt --prefer-binary --no-cache-dir
+if exist "setup\requirements.txt" (
+    python -m pip install -r setup\requirements.txt --prefer-binary --no-cache-dir
+) else if exist "requirements.txt" (
+    python -m pip install -r requirements.txt --prefer-binary --no-cache-dir
+) else (
+    echo ERROR: requirements.txt not found
+    echo Please run this script from the Insightron root directory
+    pause
+    exit /b 1
+)
 if %errorlevel% neq 0 (
     echo.
     echo [WARNING] Standard installation failed.
@@ -96,10 +109,18 @@ if %errorlevel% neq 0 (
     if !errorlevel! neq 0 (
         echo.
         echo [WARNING] Some dependencies failed, trying minimal installation...
-        python -m pip install -r setup/requirements-minimal.txt --prefer-binary --no-cache-dir
+        if exist "setup\requirements-minimal.txt" (
+            python -m pip install -r setup\requirements-minimal.txt --prefer-binary --no-cache-dir
+        ) else if exist "requirements-minimal.txt" (
+            python -m pip install -r requirements-minimal.txt --prefer-binary --no-cache-dir
+        ) else (
+            echo ERROR: requirements-minimal.txt not found
+            pause
+            exit /b 1
+        )
         if !errorlevel! neq 0 (
             echo ERROR: Installation failed completely
-            echo Please run: python setup/troubleshoot.py
+            echo Please run: python scripts/troubleshoot.py
             pause
             exit /b 1
         )
@@ -120,7 +141,7 @@ if errorlevel 1 (
     echo           2. Install Rust (for tokenizers): https://rustup.rs/
     echo           3. Ensure you are using Python 3.10 - 3.12
     echo.
-    echo           Run: python setup/troubleshoot.py for detailed diagnostics.
+    echo           Run: python scripts/troubleshoot.py for detailed diagnostics.
 )
 
 echo.
@@ -132,7 +153,7 @@ echo You can now run Insightron:
 echo   python insightron.py    # GUI mode (recommended)
 echo   python cli.py audio.mp3  # Command line mode
 echo.
-echo For help: python setup/troubleshoot.py
+echo For help: python scripts/troubleshoot.py
 echo Documentation: README.md
 echo.
 pause

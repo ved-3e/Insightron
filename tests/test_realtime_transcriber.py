@@ -1,5 +1,5 @@
 """
-Comprehensive unit tests for RealtimeTranscriber (v2.1.0).
+Comprehensive unit tests for RealtimeTranscriber (v2.2.0).
 Tests ring buffer, threading, audio processing, and transcription functionality.
 """
 import unittest

@@ -70,17 +70,19 @@ Insightron is a next-generation transcription application powered by **faster-wh
 git clone https://github.com/ved-3e/Insightron.git
 cd Insightron
 
-# Automated setup (recommended)
-python setup.py
+# Universal installer (recommended - works on all platforms)
+python install.py
 
-# Windows users - use the enhanced installer
-install_windows.bat
+# Platform-specific installers
+install_windows.bat    # Windows
+./install_unix.sh      # Linux/macOS (chmod +x install_unix.sh first)
 
-# Cross-platform installer
-python install_dependencies.py
+# Alternative installers
+python setup/install_dependencies.py  # Cross-platform Python installer
+python setup/setup.py                  # Enhanced setup script
 
 # Or manual installation
-pip install -r requirements.txt
+pip install -r setup/requirements.txt
 ```
 
 ### 2. **Configuration**
@@ -300,7 +302,7 @@ Your beautifully formatted transcript here with intelligent paragraph breaks...
 #### **Installation Problems**
 ```bash
 # Enhanced troubleshooting
-python troubleshoot.py
+python scripts/troubleshoot.py
 
 # Cross-platform installer
 python install_dependencies.py
@@ -448,7 +450,7 @@ black *.py
 - ✅ **Memory Monitoring**: Real-time memory tracking with OOM prevention for large batch operations
 - ✅ **Code Quality**: Reduced duplication by centralizing quality metrics calculation
 
-### **Previous Updates (v2.1.0)**
+### **Previous Updates (v2.2.0)**
 
 ### **🚀 New Features**
 - ✅ **Bullets Formatting**: New "bullets" formatting style to automatically create bulleted lists from speech.

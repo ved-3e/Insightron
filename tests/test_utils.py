@@ -1,5 +1,5 @@
 """
-Unit tests for utility functions (v2.1.0).
+Unit tests for utility functions (v2.2.0).
 Tests markdown creation, realtime note generation, and helper functions.
 """
 import unittest

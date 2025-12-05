@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory contains the comprehensive test suite for Insightron v2.1.0. The tests cover all major components including core modules, transcription functionality, realtime processing, batch operations, and text formatting.
+This directory contains the comprehensive test suite for Insightron v2.2.0. The tests cover all major components including core modules, transcription functionality, realtime processing, batch operations, and text formatting.
 
 ## Test Organization
 
@@ -10,7 +10,7 @@ This directory contains the comprehensive test suite for Insightron v2.1.0. The 
 
 #### Core Module Tests
 - **`test_config.py`** - Configuration system tests (existing, comprehensive)
-- **`test_model_manager.py`** - Model manager tests with v2.1.0 enhancements
+- **`test_model_manager.py`** - Model manager tests with v2.2.0 enhancements
   - Quality mode configurations (high/balanced/fast)
   - VAD parameters and adaptive VAD
   - Retry mechanism with fallback strategies
@@ -305,6 +305,6 @@ For questions about the test suite:
 
 ---
 
-**Test Suite Version**: 2.1.0  
+**Test Suite Version**: 2.2.0  
 **Last Updated**: 2024-12-03  
 **Maintained by**: Insightron Development Team

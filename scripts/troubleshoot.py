@@ -157,7 +157,9 @@ def main():
     print("• If whisper fails, try: pip install openai-whisper --no-cache-dir")
     print("• For audio issues, install ffmpeg: https://ffmpeg.org/download.html")
     print("• Try minimal installation: pip install -r requirements-minimal.txt")
-    print("• Run enhanced installer: python install_dependencies.py")
+    print("• Run universal installer: python install.py")
+    print("• Or platform-specific: install_windows.bat (Windows) or ./install_unix.sh (Linux/macOS)")
+    print("• Or Python installer: python setup/install_dependencies.py")
     
     print("\n🚀 Quick Start:")
     print("• GUI Mode: python insightron.py")
